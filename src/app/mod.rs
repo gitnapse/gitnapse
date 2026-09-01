@@ -276,45 +276,6 @@ impl App {
         self.current_preview_path = None;
         self.tree_text_mode = false;
     }
-
-    fn selected_node(&self) -> Option<&RepoNode> {
-        self.tree_all.get(self.selected_node)
-    }
-
-    pub fn visible_tree(&self) -> &[RepoNode] {
-        let limit = self.tree_visible_limit.min(self.tree_all.len());
-        &self.tree_all[..limit]
-    }
-
-    pub(crate) fn selected_branch_name(&self) -> String {
-        self.branches
-            .get(self.selected_branch)
-            .cloned()
-            .unwrap_or_else(|| "HEAD".to_string())
-    }
-
-    fn ensure_lazy_tree_progress(&mut self) {
-        if self.tree_visible_limit >= self.tree_all.len() {
-            return;
-        }
-        if self.selected_node + Self::TREE_LOAD_THRESHOLD >= self.tree_visible_limit {
-            self.tree_visible_limit =
-                (self.tree_visible_limit + Self::TREE_PAGE_SIZE).min(self.tree_all.len());
-            self.status = format!(
-                "Loaded more tree entries ({}/{}).",
-                self.tree_visible_limit,
-                self.tree_all.len()
-            );
-        }
-    }
-
-    fn reset_tree(&mut self, nodes: Vec<RepoNode>) {
-        self.tree_all = nodes;
-        self.selected_node = 0;
-        self.tree_visible_limit = self.tree_all.len().min(Self::TREE_PAGE_SIZE);
-        self.current_preview_path = None;
-        self.tree_text_mode = false;
-    }
 }
 
 pub fn run() -> Result<()> {

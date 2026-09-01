@@ -7,6 +7,7 @@ pub mod error;
 pub mod github;
 pub mod models;
 pub mod provider;
+pub mod registry;
 pub mod runtime;
 pub mod syntax;
 pub mod task_manager;

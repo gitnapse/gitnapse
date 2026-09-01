@@ -95,6 +95,11 @@ enum Command {
     },
     /// Search repositories on GitHub
     Search(cli::SearchArgs),
+    /// List, install or remove themes from the registry
+    Theme {
+        #[command(subcommand)]
+        action: cli::ThemeAction,
+    },
 }
 
 fn main() -> Result<()> {
@@ -109,7 +114,7 @@ fn dispatch(cmd: Option<Command>) -> Result<()> {
     use Command::{
         Auth, Branch, Checkout, Ci, Clone, Commit, Compare, Config, Diff, DownloadFile, Fetch,
         Issue, Log, Merge, Pr, Pull, Push, Release, Remote, Repo, Reset, Run, Search, Stash,
-        Status, Tag,
+        Status, Tag, Theme,
     };
     match cmd {
         Some(Run(args)) => app::run_with_options(args.into()),
@@ -139,6 +144,7 @@ fn dispatch(cmd: Option<Command>) -> Result<()> {
         Some(Release { action }) => dispatch_release(action),
         Some(Repo { action }) => dispatch_repo(action),
         Some(Search(args)) => cli::search(&args.query),
+        Some(Theme { action }) => dispatch_theme(action),
         Some(Auth { action }) => dispatch_auth(action),
         None => app::run(),
     }
@@ -221,6 +227,54 @@ fn dispatch_repo(action: cli::RepoAction) -> Result<()> {
     use cli::RepoAction::Create;
     match action {
         Create(a) => cli::repo_create(&a.name, a.description.as_deref(), a.private),
+    }
+}
+
+fn dispatch_theme(action: cli::ThemeAction) -> Result<()> {
+    use cli::ThemeAction::{Install, List, Uninstall};
+    use gitnapse::registry;
+    match action {
+        List(args) => {
+            let local = registry::list_installed()?;
+            println!("Installed themes ({}):", local.len());
+            for name in &local {
+                println!("  {name}");
+            }
+            if args.remote {
+                println!("\nRegistry: {}", registry::index_url());
+                let remote = registry::list_remote()?;
+                for entry in remote {
+                    let mark = if local.iter().any(|l| l.eq_ignore_ascii_case(&entry.name)) {
+                        "[installed] "
+                    } else {
+                        ""
+                    };
+                    let shade = if entry.dark { "dark" } else { "light" };
+                    let desc = entry.description.as_deref().unwrap_or("");
+                    println!("  {mark}{} ({shade}) {}", entry.name, desc);
+                }
+            } else {
+                println!(
+                    "Use --remote to query the registry at {}",
+                    registry::index_url()
+                );
+            }
+            Ok(())
+        }
+        Install(args) => {
+            let entry = registry::install_theme(&args.name)?;
+            println!("Installed theme '{}' from the registry.", entry.name);
+            println!("Select it with theme_name in theme.jsonc or via the app theme picker.");
+            Ok(())
+        }
+        Uninstall(args) => {
+            if registry::uninstall_theme(&args.name)? {
+                println!("Removed theme '{}'.", args.name);
+            } else {
+                println!("Theme '{}' is not installed locally.", args.name);
+            }
+            Ok(())
+        }
     }
 }
 

@@ -144,7 +144,10 @@ impl SearchScreen {
             } else {
                 Style::default()
             });
-        frame.render_widget(List::new(items).block(block), area);
+        frame.render_widget(
+            List::new(items).block(block).style(theme::text_style()),
+            area,
+        );
     }
 }
 

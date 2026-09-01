@@ -250,6 +250,36 @@ pub struct SearchArgs {
     pub query: String,
 }
 
+// ── Theme registry ─────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Args)]
+pub struct ThemeListArgs {
+    /// Also query the remote registry (github.com/gitnapse/themes)
+    #[arg(long)]
+    pub remote: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ThemeInstallArgs {
+    /// Theme name as listed in the registry index
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ThemeUninstallArgs {
+    pub name: String,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ThemeAction {
+    /// List installed themes (add --remote to query the registry)
+    List(ThemeListArgs),
+    /// Install a theme from the registry (github.com/gitnapse/themes)
+    Install(ThemeInstallArgs),
+    /// Remove an installed theme
+    Uninstall(ThemeUninstallArgs),
+}
+
 // ── Action enums ────────────────────────────────────────────────────────
 
 #[derive(Debug, Subcommand)]

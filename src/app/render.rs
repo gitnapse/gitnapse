@@ -1,9 +1,10 @@
 use super::screens::Screen;
+use super::screens::tree;
 use super::{App, Focus, theme};
 use crate::config::KeybindingsConfig;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap};
 use secrecy::ExposeSecret;
@@ -86,12 +87,12 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
         .style(if app.focus == Focus::Search {
             theme::selection_style(1)
         } else {
-            Style::default()
+            theme::text_style()
         });
     frame.render_widget(search_block, chunks[0]);
 
     if app.current_repo.is_some() {
-        render_repo_view(frame, app, chunks[1]);
+        tree::render_repo_view(frame, app, chunks[1]);
     } else {
         app.search.render(frame, app, chunks[1]);
     }
@@ -101,10 +102,17 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
         None => "Status".to_string(),
     };
     let status = Paragraph::new(app.status.clone())
-        .block(Block::default().borders(Borders::ALL).title(status_title));
+        .style(theme::text_style())
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(status_title)
+                .border_style(Style::default().fg(theme::accent())),
+        );
     frame.render_widget(status, chunks[2]);
 
     let nav = Paragraph::new(nav_lines)
+        .style(theme::text_style())
         .block(Block::default().borders(Borders::ALL).title("Navigation"))
         .wrap(Wrap { trim: false });
     frame.render_widget(nav, chunks[3]);
@@ -197,115 +205,6 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
         let area = centered_rect(frame.area(), 60, 60);
         app.command_palette.render(frame, area);
     }
-}
-
-fn render_repo_view(frame: &mut Frame<'_>, app: &mut App, area: Rect) {
-    let show_side_preview = area.width >= 120;
-
-    if show_side_preview {
-        let sections = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(45), Constraint::Percentage(55)])
-            .split(area);
-        app.preview_viewport_rows = usize::from(sections[1].height.saturating_sub(2)).max(1);
-        render_tree(frame, &*app, sections[0]);
-        render_preview(frame, &*app, sections[1]);
-    } else {
-        let sections = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(55), Constraint::Percentage(45)])
-            .split(area);
-        app.preview_viewport_rows = usize::from(sections[1].height.saturating_sub(2)).max(1);
-        render_tree(frame, &*app, sections[0]);
-        render_preview(frame, &*app, sections[1]);
-    }
-}
-
-fn render_tree(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let visible = app.visible_tree();
-    let viewport_rows = usize::from(area.height.saturating_sub(2)).max(1);
-    let max_start = visible.len().saturating_sub(viewport_rows);
-    let start = app
-        .selected_node
-        .saturating_sub(viewport_rows / 2)
-        .min(max_start);
-    let end = (start + viewport_rows).min(visible.len());
-
-    let items = visible[start..end]
-        .iter()
-        .enumerate()
-        .map(|(index, entry)| {
-            let absolute = start + index;
-            let marker = if absolute == app.selected_node {
-                ">"
-            } else {
-                " "
-            };
-            let indent = "  ".repeat(entry.depth.min(20));
-            let icon = if entry.is_dir { "[D]" } else { "[F]" };
-            let text = format!("{marker} {indent}{icon} {}", entry.name);
-            let style = if absolute == app.selected_node {
-                theme::selection_style(absolute)
-            } else {
-                Style::default()
-            };
-            ListItem::new(Line::from(Span::styled(text, style)))
-        })
-        .collect::<Vec<_>>();
-
-    let block = Block::default()
-        .title(format!(
-            "Explorer [{}] shown {}-{} / {} (b branches)",
-            app.selected_branch_name(),
-            if visible.is_empty() { 0 } else { start + 1 },
-            end,
-            app.tree_all.len()
-        ))
-        .borders(Borders::ALL)
-        .border_style(if app.focus == Focus::Tree {
-            theme::selection_style(3).fg(Color::White)
-        } else {
-            Style::default()
-        });
-    frame.render_widget(List::new(items).block(block), area);
-}
-
-fn render_preview(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    let viewport_rows = usize::from(area.height.saturating_sub(2)).max(1);
-    let start = app
-        .preview_scroll
-        .min(app.preview_lines.len().saturating_sub(1));
-    let end = (start + viewport_rows).min(app.preview_lines.len());
-    let preview_slice = if app.preview_lines.is_empty() {
-        vec![Line::from("")]
-    } else {
-        app.preview_lines[start..end].to_vec()
-    };
-    let title = format!(
-        "{} ({}-{} / {})",
-        app.preview_title,
-        if app.preview_lines.is_empty() {
-            0
-        } else {
-            start + 1
-        },
-        end,
-        app.preview_lines.len()
-    );
-
-    let paragraph = Paragraph::new(preview_slice)
-        .block(
-            Block::default()
-                .title(title)
-                .borders(Borders::ALL)
-                .border_style(if app.focus == Focus::Preview {
-                    theme::selection_style(4)
-                } else {
-                    Style::default()
-                }),
-        )
-        .wrap(Wrap { trim: false });
-    frame.render_widget(paragraph, area);
 }
 
 fn centered_rect(area: Rect, width_percent: u16, height_percent: u16) -> Rect {

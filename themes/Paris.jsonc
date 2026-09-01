@@ -1,21 +1,11 @@
 {
     // GitNapse Theme: Paris
-    "palette": [
-        [26, 10, 48], // color0
-        [252, 97, 141], // color1
-        [123, 216, 143], // color2
-        [252, 229, 102], // color3
-        [163, 243, 255], // color4
-        [196, 189, 255], // color5
-        [163, 243, 255], // color6
-        [247, 241, 255], // color7
-        [196, 189, 255], // color8
-        [252, 97, 141], // color9
-        [123, 216, 143], // color10
-        [252, 229, 102], // color11
-        [163, 243, 255], // color12
-        [196, 189, 255], // color13
-        [163, 243, 255], // color14
-        [247, 241, 255] // color15
-    ]
+    // Colors accept "#RRGGBB" or [r, g, b].
+    "theme_name": "Paris",
+    "background": "#1a0a30",   // background color
+    "foreground": "#f7f1ff",   // font color
+    "accent": "#fc618d",        // primary accent (selection / focus)
+    "accent2": "#7bd88f",      // secondary accent
+    "accent3": "#a3f3ff",      // tertiary accent
+    "selection_fg": "#000000" // font on accent backgrounds
 }

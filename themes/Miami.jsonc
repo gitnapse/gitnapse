@@ -1,21 +1,11 @@
 {
     // GitNapse Theme: Miami
-    "palette": [
-        [0, 0, 0], // color0
-        [255, 76, 139], // color1
-        [127, 255, 212], // color2
-        [255, 216, 76], // color3
-        [0, 255, 168], // color4
-        [211, 108, 255], // color5
-        [71, 207, 255], // color6
-        [247, 241, 255], // color7
-        [105, 103, 108], // color8
-        [255, 76, 139], // color9
-        [127, 255, 212], // color10
-        [255, 216, 76], // color11
-        [0, 255, 168], // color12
-        [211, 108, 255], // color13
-        [71, 207, 255], // color14
-        [247, 241, 255] // color15
-    ]
+    // Colors accept "#RRGGBB" or [r, g, b].
+    "theme_name": "Miami",
+    "background": "#000000",   // background color
+    "foreground": "#f7f1ff",   // font color
+    "accent": "#ff4c8b",        // primary accent (selection / focus)
+    "accent2": "#7fffd4",      // secondary accent
+    "accent3": "#47cfff",      // tertiary accent
+    "selection_fg": "#000000" // font on accent backgrounds
 }

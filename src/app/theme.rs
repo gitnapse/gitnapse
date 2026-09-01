@@ -1,4 +1,6 @@
-use crate::config::{KeybindingsConfig, ThemeConfig, config_dir, strip_jsonc_comments};
+use crate::config::{
+    KeybindingsConfig, ThemeColors, ThemeConfig, config_dir, strip_jsonc_comments,
+};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use std::sync::{LazyLock, RwLock};
@@ -42,10 +44,52 @@ const DEFAULT_PALETTE: [[u8; 3]; 16] = [
 static PALETTE: LazyLock<RwLock<Vec<[u8; 3]>>> =
     LazyLock::new(|| RwLock::new(DEFAULT_PALETTE.to_vec()));
 
+static SEMANTIC: LazyLock<RwLock<ThemeColors>> =
+    LazyLock::new(|| RwLock::new(ThemeConfig::default().effective_colors()));
+
 pub fn init_theme(config: &ThemeConfig) {
     if let Ok(mut p) = PALETTE.write() {
-        *p = config.palette.clone();
+        *p = config.effective_palette();
     }
+    if let Ok(mut s) = SEMANTIC.write() {
+        *s = config.effective_colors();
+    }
+}
+
+/// Base background color.
+pub fn background() -> Color {
+    semantic_rgb(|s| s.background)
+}
+
+/// Base foreground (font color).
+pub fn foreground() -> Color {
+    semantic_rgb(|s| s.foreground)
+}
+
+fn semantic_rgb(slot: fn(&ThemeColors) -> [u8; 3]) -> Color {
+    let rgb = match SEMANTIC.read() {
+        Ok(guard) => slot(&guard),
+        Err(_) => [0xfc, 0x61, 0x8d],
+    };
+    Color::Rgb(rgb[0], rgb[1], rgb[2])
+}
+
+/// Primary accent.
+pub fn accent() -> Color {
+    semantic_rgb(|s| s.accent)
+}
+
+pub fn accent2() -> Color {
+    semantic_rgb(|s| s.accent2)
+}
+
+pub fn accent3() -> Color {
+    semantic_rgb(|s| s.accent3)
+}
+
+/// Base text style honoring the theme's background and font color.
+pub fn text_style() -> Style {
+    Style::default().fg(foreground()).bg(background())
 }
 
 pub fn load_theme_by_name(name: &str) -> ThemeConfig {
@@ -128,10 +172,34 @@ fn palette_rgb(index: usize) -> (u8, u8, u8) {
     (entry[0], entry[1], entry[2])
 }
 
+fn relative_luminance(rgb: (u8, u8, u8)) -> f64 {
+    let linearize = |c: f64| {
+        if c <= 0.039_28 {
+            c / 12.92
+        } else {
+            ((c + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    let (r, g, b) = (
+        linearize(f64::from(rgb.0) / 255.0),
+        linearize(f64::from(rgb.1) / 255.0),
+        linearize(f64::from(rgb.2) / 255.0),
+    );
+    0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f64 {
+    let (la, lb) = (relative_luminance(a), relative_luminance(b));
+    let (hi, lo) = if la >= lb { (la, lb) } else { (lb, la) };
+    (hi + 0.05) / (lo + 0.05)
+}
+
+/// Pick the readable text color (black or white) for a background using the
+/// WCAG contrast ratio rather than a fixed luminance threshold.
 fn contrast_fg_from_rgb(rgb: (u8, u8, u8)) -> Color {
-    let (r, g, b) = rgb;
-    let luminance = (0.299 * f64::from(r) + 0.587 * f64::from(g) + 0.114 * f64::from(b)) / 255.0;
-    if luminance >= 0.58 {
+    let black = contrast_ratio(rgb, (0, 0, 0));
+    let white = contrast_ratio(rgb, (255, 255, 255));
+    if black >= white {
         Color::Black
     } else {
         Color::White
@@ -140,9 +208,15 @@ fn contrast_fg_from_rgb(rgb: (u8, u8, u8)) -> Color {
 
 pub fn selection_style(index: usize) -> Style {
     let rgb = palette_rgb(index);
+    let fg = SEMANTIC
+        .read()
+        .ok()
+        .and_then(|s| s.selection_fg)
+        .map(|rgb| Color::Rgb(rgb[0], rgb[1], rgb[2]))
+        .unwrap_or_else(|| contrast_fg_from_rgb(rgb));
     Style::default()
         .bg(Color::Rgb(rgb.0, rgb.1, rgb.2))
-        .fg(contrast_fg_from_rgb(rgb))
+        .fg(fg)
         .add_modifier(Modifier::BOLD)
 }
 
@@ -218,6 +292,29 @@ mod tests {
     }
 
     #[test]
+    fn embedded_themes_have_legible_font_on_background() {
+        for (name, _) in EMBEDDED_THEMES {
+            let cfg = load_theme_by_name(name);
+            let colors = cfg.effective_colors();
+            let bg = (
+                colors.background[0],
+                colors.background[1],
+                colors.background[2],
+            );
+            let fg = (
+                colors.foreground[0],
+                colors.foreground[1],
+                colors.foreground[2],
+            );
+            let ratio = contrast_ratio(bg, fg);
+            assert!(
+                ratio >= 4.5,
+                "{name}: foreground/background contrast {ratio:.2} < 4.5 (AA)"
+            );
+        }
+    }
+
+    #[test]
     fn init_theme_changes_palette() {
         let default_rgb = palette_rgb(1);
         // Debug: show embedded Berlin content
@@ -229,12 +326,13 @@ mod tests {
         }
         // Verify load_theme_by_name returns Berlin
         let berlin = load_theme_by_name("Berlin");
+        let berlin_palette = berlin.effective_palette();
         assert_eq!(
-            berlin.palette.len(),
+            berlin_palette.len(),
             16,
             "Berlin palette should have 16 entries"
         );
-        assert_eq!(berlin.palette[0], [0, 0, 0], "first entry should be black");
+        assert_eq!(berlin_palette[0], [0, 0, 0], "first entry should be black");
         // Apply Berlin theme
         init_theme(&berlin);
         let berlin_rgb = palette_rgb(1);

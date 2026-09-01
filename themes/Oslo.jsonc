@@ -1,21 +1,11 @@
 {
     // GitNapse Theme: Oslo
-    "palette": [
-        [63, 68, 81], // color0
-        [224, 85, 97], // color1
-        [140, 194, 101], // color2
-        [209, 143, 82], // color3
-        [74, 165, 240], // color4
-        [193, 98, 222], // color5
-        [66, 179, 194], // color6
-        [230, 230, 230], // color7
-        [79, 86, 102], // color8
-        [255, 97, 110], // color9
-        [165, 224, 117], // color10
-        [240, 164, 93], // color11
-        [77, 196, 255], // color12
-        [222, 115, 255], // color13
-        [76, 209, 224], // color14
-        [255, 255, 255] // color15
-    ]
+    // Colors accept "#RRGGBB" or [r, g, b].
+    "theme_name": "Oslo",
+    "background": "#3f4451",   // background color
+    "foreground": "#abb2bf",   // font color
+    "accent": "#e05561",        // primary accent (selection / focus)
+    "accent2": "#8cc265",      // secondary accent
+    "accent3": "#42b3c2",      // tertiary accent
+    "selection_fg": "#000000" // font on accent backgrounds
 }

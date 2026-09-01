@@ -13,7 +13,8 @@ pub use args::{
     IssueCloseArgs, IssueCreateArgs, IssueListArgs, LogArgs, MergeArgs, OauthAction, PrAction,
     PrCreateArgs, PrListArgs, PrMergeArgs, PullArgs, PushArgs, ReleaseAction, ReleaseCreateArgs,
     ReleaseListArgs, RemoteAction, RemoteAddArgs, RemoteRemoveArgs, RemoteRenameArgs, RepoAction,
-    RepoCreateArgs, ResetArgs, RunArgs, SearchArgs, StashAction, TagAction,
+    RepoCreateArgs, ResetArgs, RunArgs, SearchArgs, StashAction, TagAction, ThemeAction,
+    ThemeInstallArgs, ThemeListArgs, ThemeUninstallArgs,
 };
 pub use git::{
     branch, checkout, clone_repo, commit, config_get, config_list, config_set, diff, download_file,

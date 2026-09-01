@@ -6,33 +6,6 @@ use std::sync::Arc;
 use std::sync::mpsc;
 
 impl App {
-    pub(super) fn scroll_preview_down(&mut self, step: usize, viewport_rows: usize) {
-        let max_scroll = self.max_preview_scroll(viewport_rows);
-        self.preview_scroll = (self.preview_scroll + step).min(max_scroll);
-    }
-
-    pub(super) fn scroll_preview_up(&mut self, step: usize) {
-        self.preview_scroll = self.preview_scroll.saturating_sub(step);
-    }
-
-    fn max_preview_scroll(&self, viewport_rows: usize) -> usize {
-        self.preview_lines
-            .len()
-            .saturating_sub(viewport_rows.max(1))
-    }
-
-    pub(super) fn tree_window(&self, area_height: u16) -> (usize, usize) {
-        let visible = self.visible_tree();
-        let viewport_rows = usize::from(area_height.saturating_sub(2)).max(1);
-        let max_start = visible.len().saturating_sub(viewport_rows);
-        let start = self
-            .selected_node
-            .saturating_sub(viewport_rows / 2)
-            .min(max_start);
-        let end = (start + viewport_rows).min(visible.len());
-        (start, end)
-    }
-
     pub(super) fn repo_window(&self, area_height: u16) -> (usize, usize) {
         self.search.window(area_height)
     }

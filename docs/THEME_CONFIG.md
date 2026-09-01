@@ -1,6 +1,6 @@
 # Theme Configuration
 
-GitNapse supports custom color theming through an optional `theme.jsonc` file placed in the configuration directory.
+GitNapse supports custom color theming through an optional `theme.jsonc` file placed in the configuration directory. This is the **recommended file** to choose colors and the font color.
 
 ## Location
 
@@ -12,61 +12,76 @@ The configuration directory is platform-dependent:
 | macOS | `~/Library/Application Support/com.GitNapse.GitNapse/` |
 | Windows | `C:\Users\<user>\AppData\Roaming\GitNapse\GitNapse\config\` |
 
-Place the file at `theme.jsonc` inside that directory. If the file does not exist, GitNapse uses the built-in default palette (16 colors based on a modified Dracula-inspired scheme).
+Place the file at `theme.jsonc` inside that directory. If the file does not exist, GitNapse uses the built-in default theme (`X`).
 
-## Format
+## Simplified format
 
-The file uses JSON with support for `//` line comments (JSONC format).
+Pick a named theme and/or set your own colors. Colors accept hex strings (`"#RRGGBB"`) or RGB arrays (`[r, g, b]`).
 
 ```jsonc
 {
-    // GitNapse Theme Configuration
+    // Pick a built-in theme (optional; the base for your overrides).
+    "theme_name": "X",
+
+    // Base colors — the two you'll want most:
+    "background": "#1e1e2e",   // background color
+    "foreground": "#cdd6f4",   // font color
+
+    // Accents used for selection, focus, and pane borders (optional):
+    "accent": "#89b4fa",       // primary accent
+    "accent2": "#a6e3a1",      // secondary accent
+    "accent3": "#f38f48",      // tertiary accent
+    "selection_fg": "#11111b"  // font color used on accent backgrounds (optional)
+}
+```
+
+The `accent*` colors are cycled for selection highlighting and pane borders. `foreground` is applied to the font of the main UI (search bar, status bar, lists, preview). `selection_fg` controls the text on selected rows when you want an explicit contrast color; otherwise GitNapse picks black/white automatically based on luminance.
+
+You only need to provide the fields you want — everything unset falls back to the selected theme's values.
+
+## Example: full custom theme
+
+```jsonc
+{
+    "background": "#000000",
+    "foreground": "#ffffff",
+    "accent": "#ff5555",
+    "accent2": "#55ff55",
+    "accent3": "#5555ff"
+}
+```
+
+## Named theme files
+
+Built-in themes live as `themes/*.jsonc` (config dir, then the app's `themes/` directory). They use the same format:
+
+```jsonc
+{
+    "theme_name": "X",
+    "background": "#363537",
+    "foreground": "#f7f1ff",
+    "accent": "#fc618d",
+    "accent2": "#7bd88f",
+    "accent3": "#5ad4e6"
+}
+```
+
+## Legacy palette
+
+The old 16-color `palette` array is still supported. When present, it takes precedence over the simplified colors (no palette is derived):
+
+```jsonc
+{
     "palette": [
         [0x36, 0x35, 0x37],   // index 0  - dark background
         [0xfc, 0x61, 0x8d],   // index 1  - pink
-        [0x7b, 0xd8, 0x8f],   // index 2  - green
-        [0xfc, 0xe5, 0x66],   // index 3  - yellow
-        [0xfd, 0x93, 0x53],   // index 4  - orange
-        [0x94, 0x8a, 0xe3],   // index 5  - purple
-        [0x5a, 0xd4, 0xe6],   // index 6  - cyan
-        [0xf7, 0xf1, 0xff],   // index 7  - light text
-        [0x69, 0x67, 0x6c],   // index 8  - dim text
-        [0xfc, 0x61, 0x8d],   // index 9  - pink (bright)
-        [0x7b, 0xd8, 0x8f],   // index 10 - green (bright)
-        [0xfc, 0xe5, 0x66],   // index 11 - yellow (bright)
-        [0xfd, 0x93, 0x53],   // index 12 - orange (bright)
-        [0x94, 0x8a, 0xe3],   // index 13 - purple (bright)
-        [0x5a, 0xd4, 0xe6],   // index 14 - cyan (bright)
-        [0xf7, 0xf1, 0xff]    // index 15 - white
+        // ... up to 16 entries
     ]
 }
 ```
 
-## Palette
+The `palette` is indexed cyclically for selection highlighting. If you provide fewer than 16 entries they repeat.
 
-The `palette` field is an array of RGB color tuples `[r, g, b]`. Each value is a hexadecimal byte (0x00-0xFF). Colors are indexed modulo the palette length, so you can provide any number of colors.
+## Error handling
 
-Indexes are used cyclically for selection highlighting in the UI. For example, the first item in a list uses index 0, the second uses index 1, and so on.
-
-## Text Contrast
-
-For each palette color, GitNapse automatically selects either black or white foreground text based on the luminance of the background color. Colors with luminance >= 0.58 get black text; darker colors get white text. This ensures readability regardless of the palette values.
-
-## Customization Example
-
-To create a minimal theme with just two accent colors:
-
-```jsonc
-{
-    "palette": [
-        [0x1e, 0x1e, 0x2e],
-        [0xf3, 0x8f, 0xf8]
-    ]
-}
-```
-
-This would cycle between a dark blue-grey and a soft pink for all selection highlights.
-
-## No Palette File
-
-If `theme.jsonc` is absent or contains invalid JSON, GitNapse silently falls back to the default palette. No error is shown to the user.
+If `theme.jsonc` is absent or contains invalid JSON, GitNapse silently falls back to the default theme. No error is shown to the user.

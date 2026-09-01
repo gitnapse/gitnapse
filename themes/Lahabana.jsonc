@@ -1,21 +1,11 @@
 {
     // GitNapse Theme: Lahabana
-    "palette": [
-        [25, 25, 26], // color0
-        [252, 97, 141], // color1
-        [123, 216, 143], // color2
-        [229, 255, 157], // color3
-        [253, 147, 83], // color4
-        [148, 138, 227], // color5
-        [90, 212, 230], // color6
-        [247, 241, 255], // color7
-        [25, 25, 26], // color8
-        [252, 97, 141], // color9
-        [123, 216, 143], // color10
-        [229, 255, 157], // color11
-        [253, 147, 83], // color12
-        [148, 138, 227], // color13
-        [90, 212, 230], // color14
-        [247, 241, 255] // color15
-    ]
+    // Colors accept "#RRGGBB" or [r, g, b].
+    "theme_name": "Lahabana",
+    "background": "#19191a",   // background color
+    "foreground": "#f7f1ff",   // font color
+    "accent": "#fc618d",        // primary accent (selection / focus)
+    "accent2": "#7bd88f",      // secondary accent
+    "accent3": "#5ad4e6",      // tertiary accent
+    "selection_fg": "#000000" // font on accent backgrounds
 }

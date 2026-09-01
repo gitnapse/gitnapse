@@ -1,5 +1,6 @@
 pub mod command_palette;
 pub mod search;
+pub mod tree;
 
 use crossterm::event::KeyEvent;
 use ratatui::Frame;

@@ -4,6 +4,7 @@ pub mod theme;
 
 pub use account::AccountConfig;
 pub use keybindings::KeybindingsConfig;
+pub use theme::ThemeColors;
 pub use theme::ThemeConfig;
 
 use anyhow::{Context, Result, anyhow};
