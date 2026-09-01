@@ -95,11 +95,9 @@ impl GitHubClient {
         {
             // @me followed by whitespace (or exact @me caught above)
             trimmed[3..].trim()
-        } else if let Some(rest) = trimmed.strip_prefix("me:") {
-            // me: prefix — rest may be empty (e.g. just "me:")
-            rest.trim()
         } else {
-            return None;
+            // me: prefix — rest may be empty (e.g. just "me:")
+            trimmed.strip_prefix("me:")?.trim()
         };
 
         let mut text_terms = Vec::new();

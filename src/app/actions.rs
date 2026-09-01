@@ -14,31 +14,23 @@ impl App {
     pub(crate) fn search(&mut self) {
         self.status = "Loading...".to_string();
         match self.github.search_repositories_page(
-            &self.search_query,
-            self.search_page,
-            self.per_page,
+            &self.search.query,
+            self.search.page,
+            self.search.per_page,
         ) {
             Ok(items) => {
-                if items.is_empty() && self.search_page > 1 {
-                    self.search_page = self.search_page.saturating_sub(1);
+                if items.is_empty() && self.search.page > 1 {
+                    self.search.page = self.search.page.saturating_sub(1);
                     self.status = "No more search results pages.".to_string();
                     return;
                 }
-                self.repos = items;
-                self.selected_repo = 0;
-                self.tree_all.clear();
-                self.tree_visible_limit = 0;
-                self.selected_node = 0;
-                self.current_repo = None;
-                self.branches.clear();
-                self.selected_branch = 0;
-                self.current_preview_path = None;
-                self.tree_text_mode = false;
+                self.search.apply_results(items);
+                self.clear_repo_context();
                 self.status = format!(
                     "Loaded {} repositories on page {} (per_page {}).",
-                    self.repos.len(),
-                    self.search_page,
-                    self.per_page
+                    self.search.repos.len(),
+                    self.search.page,
+                    self.search.per_page
                 );
             }
             Err(error) => {

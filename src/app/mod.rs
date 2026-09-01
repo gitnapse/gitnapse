@@ -3,6 +3,7 @@ mod commands;
 mod input;
 mod network;
 mod render;
+mod screens;
 mod theme;
 
 use crate::auth;
@@ -25,8 +26,9 @@ use crossterm::terminal::{
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::text::Line;
+use screens::command_palette::CommandPalette;
+use screens::search::SearchScreen;
 use secrecy::SecretString;
-use std::collections::HashSet;
 use std::io::stdout;
 use std::panic;
 use std::path::PathBuf;
@@ -102,12 +104,8 @@ pub struct App {
     pub preview_cache: PreviewCache,
     pub task_manager: TaskManager,
 
-    // Search state
-    pub search_query: String,
-    pub search_page: u32,
-    pub per_page: u8,
-    pub repos: Vec<RepoSummary>,
-    pub selected_repo: usize,
+    // Search screen
+    pub search: SearchScreen,
 
     // Tree / explorer state
     pub tree_all: Vec<RepoNode>,
@@ -138,7 +136,6 @@ pub struct App {
     pub focus: Focus,
     pub should_quit: bool,
     pub auth_user: Option<String>,
-    pub multi_selected_repos: HashSet<usize>,
 
     // Click tracking
     pub last_tree_click: Option<(usize, Instant)>,
@@ -147,20 +144,16 @@ pub struct App {
     // Keybindings
     pub keybindings: KeybindingsConfig,
 
-    // Command palette
-    pub command_palette_visible: bool,
+    // Command palette overlay
+    pub command_palette: CommandPalette,
+
+    // Info overlay
     pub show_info: bool,
-    pub command_input: String,
-    pub command_cursor: usize,
-    pub command_items: Vec<String>,
-    pub command_filtered: Vec<String>,
 
     // PR management
     pub pr_detail: Option<PullRequestDetail>,
     pub pr_reviews: Vec<PullRequestReview>,
     pub pr_comments: Vec<ReviewComment>,
-    pub command_is_pr_action: bool,
-    pub command_is_theme_picker: bool,
     pub pending_pr_number: String,
     // PR review / creation input state
     pub pr_pending_action: Option<String>,
@@ -213,11 +206,12 @@ impl App {
             account: account.clone(),
             preview_cache,
             task_manager: TaskManager::new(),
-            search_query: options.initial_query,
-            search_page: options.initial_page.max(1),
-            per_page: options.per_page.clamp(1, 100),
-            repos: Vec::new(),
-            selected_repo: 0,
+            search: SearchScreen {
+                query: options.initial_query,
+                page: options.initial_page.max(1),
+                per_page: options.per_page.clamp(1, 100),
+                ..SearchScreen::default()
+            },
             tree_all: Vec::new(),
             tree_visible_limit: 0,
             selected_node: 0,
@@ -253,21 +247,14 @@ impl App {
             focus: Focus::Repos,
             should_quit: false,
             auth_user,
-            multi_selected_repos: HashSet::new(),
             last_tree_click: None,
             last_repo_click: None,
             keybindings,
-            command_palette_visible: false,
+            command_palette: CommandPalette::default(),
             show_info: false,
-            command_input: String::new(),
-            command_cursor: 0,
-            command_items: Vec::new(),
-            command_filtered: Vec::new(),
             pr_detail: None,
             pr_reviews: Vec::new(),
             pr_comments: Vec::new(),
-            command_is_pr_action: false,
-            command_is_theme_picker: false,
             pending_pr_number: String::new(),
             pr_pending_action: None,
             pr_pending_body: String::new(),
@@ -275,7 +262,19 @@ impl App {
     }
 
     pub fn selected_repo(&self) -> Option<&RepoSummary> {
-        self.repos.get(self.selected_repo)
+        self.search.selected_repo()
+    }
+
+    /// Clear tree/explorer context when a new search replaces the repo list.
+    pub(crate) fn clear_repo_context(&mut self) {
+        self.tree_all.clear();
+        self.tree_visible_limit = 0;
+        self.selected_node = 0;
+        self.current_repo = None;
+        self.branches.clear();
+        self.selected_branch = 0;
+        self.current_preview_path = None;
+        self.tree_text_mode = false;
     }
 
     fn selected_node(&self) -> Option<&RepoNode> {
@@ -345,9 +344,9 @@ pub fn run_with_options(options: RunOptions) -> Result<()> {
     app.status = "Loading...".to_string();
     let tx = net_tx.clone();
     let g = github.clone();
-    let query = app.search_query.clone();
-    let page = app.search_page;
-    let per_page = app.per_page;
+    let query = app.search.query.clone();
+    let page = app.search.page;
+    let per_page = app.search.per_page;
     app.task_manager.spawn(move || {
         let result = g.search_repositories_page(&query, page, per_page);
         let _ = tx.send(NetworkEvent::SearchResult(
@@ -430,11 +429,7 @@ mod tests {
             },
             preview_cache: crate::cache::PreviewCache::new(120).expect("cache"),
             task_manager: TaskManager::new(),
-            search_query: String::new(),
-            search_page: 1,
-            per_page: 30,
-            repos: vec![],
-            selected_repo: 0,
+            search: SearchScreen::default(),
             tree_all: vec![],
             tree_visible_limit: 0,
             selected_node: 0,
@@ -457,21 +452,14 @@ mod tests {
             focus: Focus::Repos,
             should_quit: false,
             auth_user: None,
-            multi_selected_repos: HashSet::new(),
             last_tree_click: None,
             last_repo_click: None,
             keybindings: crate::config::KeybindingsConfig::default(),
-            command_palette_visible: false,
+            command_palette: CommandPalette::default(),
             show_info: false,
-            command_input: String::new(),
-            command_cursor: 0,
-            command_items: Vec::new(),
-            command_filtered: Vec::new(),
             pr_detail: None,
             pr_reviews: Vec::new(),
             pr_comments: Vec::new(),
-            command_is_pr_action: false,
-            command_is_theme_picker: false,
             pending_pr_number: String::new(),
             pr_pending_action: None,
             pr_pending_body: String::new(),
@@ -536,7 +524,7 @@ mod tests {
     #[test]
     fn key_down_in_repos_moves_selection() {
         let mut app = test_app();
-        app.repos = vec![
+        app.search.repos = vec![
             RepoSummary {
                 name: "a".into(),
                 full_name: "o/a".into(),
@@ -558,9 +546,9 @@ mod tests {
                 default_branch: "main".into(),
             },
         ];
-        assert_eq!(app.selected_repo, 0);
+        assert_eq!(app.search.selected, 0);
         app.handle_key(KeyCode::Down);
-        assert_eq!(app.selected_repo, 1);
+        assert_eq!(app.search.selected, 1);
     }
 
     #[test]
@@ -639,11 +627,7 @@ mod tests {
             },
             preview_cache: crate::cache::PreviewCache::new(120).expect("cache"),
             task_manager: TaskManager::new(),
-            search_query: String::new(),
-            search_page: 1,
-            per_page: 30,
-            repos: vec![],
-            selected_repo: 0,
+            search: SearchScreen::default(),
             tree_all: (0..800)
                 .map(|i| crate::models::RepoNode {
                     path: format!("f{i}"),
@@ -673,21 +657,14 @@ mod tests {
             focus: Focus::Tree,
             should_quit: false,
             auth_user: None,
-            multi_selected_repos: HashSet::new(),
             last_tree_click: None,
             last_repo_click: None,
             keybindings: crate::config::KeybindingsConfig::default(),
-            command_palette_visible: false,
+            command_palette: CommandPalette::default(),
             show_info: false,
-            command_input: String::new(),
-            command_cursor: 0,
-            command_items: Vec::new(),
-            command_filtered: Vec::new(),
             pr_detail: None,
             pr_reviews: Vec::new(),
             pr_comments: Vec::new(),
-            command_is_pr_action: false,
-            command_is_theme_picker: false,
             pending_pr_number: String::new(),
             pr_pending_action: None,
             pr_pending_body: String::new(),

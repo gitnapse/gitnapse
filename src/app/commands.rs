@@ -1,137 +1,43 @@
 use super::{App, Focus, NetworkEvent, theme};
+use crate::app::screens::command_palette::{CommandPalette, PaletteOutcome};
 use crate::provider::GitProvider;
-use crossterm::event::KeyCode;
 use secrecy::SecretString;
 use std::sync::Arc;
 use std::sync::mpsc;
 
 impl App {
     pub(crate) fn toggle_command_palette(&mut self) {
-        self.command_palette_visible = !self.command_palette_visible;
-        if self.command_palette_visible {
-            self.command_input.clear();
-            self.command_cursor = 0;
-            self.build_command_list();
+        let opening = !self.command_palette.visible;
+        self.command_palette.visible = opening;
+        if opening {
+            self.command_palette.input.clear();
+            self.command_palette.cursor = 0;
+            self.command_palette.is_pr_action = false;
+            self.command_palette.is_theme_picker = false;
+            let items = CommandPalette::command_list(self);
+            self.command_palette.items = items;
         }
     }
 
-    fn build_command_list(&mut self) {
-        let mut commands = vec![
-            "Search Repositories".to_string(),
-            "List Starred Repos".to_string(),
-        ];
-        if self.current_repo.is_some() {
-            commands.push("Switch Branch".to_string());
-            commands.push("Find File".to_string());
-            commands.push("Clone Repository".to_string());
-            commands.push("Download Current File".to_string());
-            commands.push("Toggle Tree View".to_string());
-            commands.push("List Issues".to_string());
-            commands.push("List Pull Requests".to_string());
-            commands.push("View Recent Commits".to_string());
-            commands.push("View CI Status".to_string());
-            commands.push("View Workflow Runs".to_string());
-            commands.push("View PR Detail".to_string());
-            commands.push("Create Pull Request".to_string());
-            commands.push("Compare Branches".to_string());
-        }
-        if !self.multi_selected_repos.is_empty() {
-            commands.push(format!(
-                "Clone {} Selected Repos",
-                self.multi_selected_repos.len()
-            ));
-        }
-        commands.push("Show Info".to_string());
-        commands.push("Change Theme".to_string());
-        commands.push("Set Token".to_string());
-        commands.push("Quit".to_string());
-        self.command_items = commands;
-    }
-
-    pub(crate) fn handle_command_palette_input(
+    /// Perform an outcome produced by the command palette.
+    pub(crate) fn perform_palette_outcome(
         &mut self,
-        code: KeyCode,
+        outcome: PaletteOutcome,
         tx: mpsc::Sender<NetworkEvent>,
         github: Arc<dyn GitProvider>,
     ) {
-        if self.keybindings.matches_key("escape", &code) {
-            self.command_palette_visible = false;
-        } else if self.keybindings.matches_key("enter", &code) {
-            let selected = self.get_selected_command();
-            if self.command_is_theme_picker {
-                if let Some(theme_name) = selected {
-                    let config = theme::load_theme_by_name(&theme_name);
-                    theme::init_theme(&config);
-                    self.status = format!("Theme changed to {theme_name}.");
-                }
-                self.command_palette_visible = false;
-                self.command_is_theme_picker = false;
-            } else if self.command_is_pr_action {
-                self.command_palette_visible = false;
-                self.command_is_pr_action = false;
-                if let Some(action) = selected {
-                    self.execute_pr_action(action, tx, github);
-                }
-            } else {
-                self.command_palette_visible = false;
-                if let Some(cmd) = selected {
-                    self.execute_command(cmd, tx, github);
-                }
-            }
-        } else if self.keybindings.matches_key("scroll_up", &code) {
-            let count = if self.command_input.is_empty() {
-                self.command_items.len()
-            } else {
-                self.command_filtered.len()
-            };
-            if count > 0 {
-                self.command_cursor = self.command_cursor.saturating_sub(1);
-            }
-        } else if self.keybindings.matches_key("scroll_down", &code) {
-            let count = if self.command_input.is_empty() {
-                self.command_items.len()
-            } else {
-                self.command_filtered.len()
-            };
-            if count > 0 {
-                self.command_cursor = (self.command_cursor + 1).min(count - 1);
-            }
-        } else if self.keybindings.matches_key("backspace", &code) {
-            self.command_input.pop();
-            self.update_command_filter();
-        } else if let KeyCode::Char(ch) = code {
-            self.command_input.push(ch);
-            self.update_command_filter();
+        match outcome {
+            PaletteOutcome::None => {}
+            PaletteOutcome::ExecuteCommand(cmd) => self.execute_command(cmd, tx, github),
+            PaletteOutcome::ExecutePrAction(action) => self.execute_pr_action(action, tx, github),
+            PaletteOutcome::ThemePicked(name) => self.apply_theme(name),
         }
     }
 
-    fn get_selected_command(&self) -> Option<String> {
-        let items = if self.command_input.is_empty() {
-            &self.command_items
-        } else {
-            &self.command_filtered
-        };
-        items.get(self.command_cursor).cloned()
-    }
-
-    fn update_command_filter(&mut self) {
-        if self.command_input.is_empty() {
-            self.command_filtered.clear();
-            return;
-        }
-        let lower = self.command_input.to_lowercase();
-        self.command_filtered = self
-            .command_items
-            .iter()
-            .filter(|item| item.to_lowercase().contains(&lower))
-            .cloned()
-            .collect();
-        let count = self.command_filtered.len();
-        if count > 0 {
-            self.command_cursor = self.command_cursor.min(count - 1);
-        } else {
-            self.command_cursor = 0;
-        }
+    fn apply_theme(&mut self, theme_name: String) {
+        let config = theme::load_theme_by_name(&theme_name);
+        theme::init_theme(&config);
+        self.status = format!("Theme changed to {theme_name}.");
     }
 
     fn execute_command(
@@ -143,7 +49,7 @@ impl App {
         match cmd.as_str() {
             "Search Repositories" => {
                 self.focus = Focus::Search;
-                self.input_buffer = self.search_query.clone();
+                self.input_buffer = self.search.query.clone();
             }
             "List Starred Repos" => {
                 self.status = "Loading starred repos...".to_string();
@@ -199,11 +105,7 @@ impl App {
                 if themes.is_empty() {
                     self.status = "No themes found.".to_string();
                 } else {
-                    self.command_items = themes;
-                    self.command_input.clear();
-                    self.command_cursor = 0;
-                    self.command_is_theme_picker = true;
-                    self.command_palette_visible = true;
+                    self.command_palette.enter_theme_picker(themes);
                 }
             }
             "Set Token" => {
@@ -337,13 +239,14 @@ impl App {
                 self.should_quit = true;
             }
             cmd if cmd.starts_with("Clone ") && cmd.contains("Selected Repos") => {
-                if self.multi_selected_repos.is_empty() {
+                if self.search.multi_selected.is_empty() {
                     self.status = "No repos selected.".to_string();
                 } else {
                     let selected: Vec<_> = self
-                        .multi_selected_repos
+                        .search
+                        .multi_selected
                         .iter()
-                        .filter_map(|&i| self.repos.get(i))
+                        .filter_map(|&i| self.search.repos.get(i))
                         .cloned()
                         .collect();
                     let dest = self.clone_path_input.trim().to_string();
@@ -366,7 +269,7 @@ impl App {
                                     .output();
                             }
                         });
-                        self.multi_selected_repos.clear();
+                        self.search.multi_selected.clear();
                     }
                 }
             }

@@ -1,5 +1,5 @@
+use crate::auth::secure_store;
 use crate::runtime;
-use crate::secure_store;
 use anyhow::{Context, Result, anyhow};
 use directories::ProjectDirs;
 use reqwest::Client;

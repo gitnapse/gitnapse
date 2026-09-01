@@ -79,13 +79,8 @@ pub fn detect_repo_from_remote() -> Option<String> {
         .or_else(|| url.strip_prefix("git@"))
         .unwrap_or(url);
 
-    let path = if let Some(pos) = after_scheme.find(':') {
-        &after_scheme[pos + 1..]
-    } else if let Some(pos) = after_scheme.find('/') {
-        &after_scheme[pos + 1..]
-    } else {
-        return None;
-    };
+    let pos = after_scheme.find(':').or_else(|| after_scheme.find('/'))?;
+    let path = &after_scheme[pos + 1..];
 
     let parts: Vec<&str> = path.split('/').collect();
     if parts.len() >= 2 {

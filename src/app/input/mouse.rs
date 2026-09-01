@@ -32,8 +32,8 @@ impl App {
                 let content_row = row.saturating_sub(panes.repo_or_tree.y.saturating_add(1));
                 let (start, end) = self.repo_window(panes.repo_or_tree.height);
                 let idx = start + usize::from(content_row);
-                if idx < end && idx < self.repos.len() {
-                    self.selected_repo = idx;
+                if idx < end && idx < self.search.repos.len() {
+                    self.search.selected = idx;
                     if self.is_double_click_repo(idx) {
                         self.open_selected_repo();
                     }
@@ -72,13 +72,12 @@ impl App {
                         (self.selected_node + 1).min(self.tree_all.len().saturating_sub(1));
                     self.ensure_lazy_tree_progress();
                 }
-            } else if !self.repos.is_empty() {
+            } else if !self.search.repos.is_empty() {
                 self.focus = Focus::Repos;
                 if up {
-                    self.selected_repo = self.selected_repo.saturating_sub(1);
+                    self.search.move_selection(-1);
                 } else {
-                    self.selected_repo =
-                        (self.selected_repo + 1).min(self.repos.len().saturating_sub(1));
+                    self.search.move_selection(1);
                 }
             }
             return;

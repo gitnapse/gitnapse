@@ -1,4 +1,4 @@
-use crate::app::{App, Focus, NetworkEvent};
+use crate::app::{App, Focus, NetworkEvent, screens::Screen};
 use crate::provider::GitProvider;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::text::Line;
@@ -34,14 +34,7 @@ impl App {
     }
 
     pub(super) fn repo_window(&self, area_height: u16) -> (usize, usize) {
-        let viewport_rows = usize::from(area_height.saturating_sub(2)).max(1);
-        let max_start = self.repos.len().saturating_sub(viewport_rows);
-        let start = self
-            .selected_repo
-            .saturating_sub(viewport_rows / 2)
-            .min(max_start);
-        let end = (start + viewport_rows).min(self.repos.len());
-        (start, end)
+        self.search.window(area_height)
     }
 
     fn back_to_repo_list(&mut self) {
@@ -67,16 +60,15 @@ impl App {
     fn handle_navigation(&mut self, code: KeyCode) {
         if self.keybindings.matches_key("quit", &code) {
             self.should_quit = true;
-        } else if code == KeyCode::Char(' ') && self.focus == Focus::Repos && !self.repos.is_empty()
+        } else if code == KeyCode::Char(' ')
+            && self.focus == Focus::Repos
+            && !self.search.repos.is_empty()
         {
-            let idx = self.selected_repo;
-            if !self.multi_selected_repos.remove(&idx) {
-                self.multi_selected_repos.insert(idx);
-            }
-            self.status = format!("{} repository(s) selected", self.multi_selected_repos.len());
+            let count = self.search.toggle_multi_select();
+            self.status = format!("{} repository(s) selected", count);
         } else if self.keybindings.matches_key("search", &code) {
             self.focus = Focus::Search;
-            self.input_buffer = self.search_query.clone();
+            self.input_buffer = self.search.query.clone();
         } else if self.keybindings.matches_key("token_input", &code) {
             self.focus = Focus::TokenInput;
             self.input_buffer.clear();
@@ -118,13 +110,13 @@ impl App {
         } else if self.keybindings.matches_key("escape", &code) {
             self.back_to_repo_list();
         } else if self.keybindings.matches_key("page_left", &code) {
-            if self.focus == Focus::Repos && self.search_page > 1 {
-                self.search_page = self.search_page.saturating_sub(1);
+            if self.focus == Focus::Repos && self.search.page > 1 {
+                self.search.page = self.search.page.saturating_sub(1);
                 self.search();
             }
         } else if self.keybindings.matches_key("page_right", &code) {
             if self.focus == Focus::Repos {
-                self.search_page = self.search_page.saturating_add(1);
+                self.search.page = self.search.page.saturating_add(1);
                 self.search();
             }
         } else if self.keybindings.matches_key("scroll_down", &code) {
@@ -134,17 +126,16 @@ impl App {
                 self.ensure_lazy_tree_progress();
             } else if self.focus == Focus::Preview {
                 self.scroll_preview_down(1, self.preview_viewport_rows);
-            } else if !self.repos.is_empty() {
-                self.selected_repo =
-                    (self.selected_repo + 1).min(self.repos.len().saturating_sub(1));
+            } else if !self.search.repos.is_empty() {
+                self.search.move_selection(1);
             }
         } else if self.keybindings.matches_key("scroll_up", &code) {
             if self.focus == Focus::Tree && !self.tree_all.is_empty() {
                 self.selected_node = self.selected_node.saturating_sub(1);
             } else if self.focus == Focus::Preview {
                 self.scroll_preview_up(1);
-            } else if !self.repos.is_empty() {
-                self.selected_repo = self.selected_repo.saturating_sub(1);
+            } else if !self.search.repos.is_empty() {
+                self.search.move_selection(-1);
             }
         } else if self.keybindings.matches_key("page_down", &code) {
             if self.focus == Focus::Preview {
@@ -320,7 +311,7 @@ impl App {
         // PR number input mode
         if self.focus == Focus::TreeSearch
             && self.pr_detail.is_none()
-            && !self.command_palette_visible
+            && !self.command_palette.visible
         {
             if self.keybindings.matches_key("escape", &code) {
                 self.tree_search_input.clear();
@@ -353,8 +344,9 @@ impl App {
             return;
         }
 
-        if self.command_palette_visible {
-            self.handle_command_palette_input(code, tx, github);
+        if self.command_palette.visible {
+            let outcome = self.command_palette.handle_key(&self.keybindings, event);
+            self.perform_palette_outcome(outcome, tx, github);
             return;
         }
 

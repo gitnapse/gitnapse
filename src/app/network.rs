@@ -4,26 +4,18 @@ impl App {
     pub(crate) fn handle_network_event(&mut self, event: NetworkEvent) {
         match event {
             NetworkEvent::SearchResult(Ok(items)) => {
-                if items.is_empty() && self.search_page > 1 {
-                    self.search_page = self.search_page.saturating_sub(1);
+                if items.is_empty() && self.search.page > 1 {
+                    self.search.page = self.search.page.saturating_sub(1);
                     self.status = "No more search results pages.".to_string();
                     return;
                 }
-                self.repos = items;
-                self.selected_repo = 0;
-                self.tree_all.clear();
-                self.tree_visible_limit = 0;
-                self.selected_node = 0;
-                self.current_repo = None;
-                self.branches.clear();
-                self.selected_branch = 0;
-                self.current_preview_path = None;
-                self.tree_text_mode = false;
+                self.search.apply_results(items);
+                self.clear_repo_context();
                 self.status = format!(
                     "Loaded {} repositories on page {} (per_page {}).",
-                    self.repos.len(),
-                    self.search_page,
-                    self.per_page
+                    self.search.repos.len(),
+                    self.search.page,
+                    self.search.per_page
                 );
             }
             NetworkEvent::SearchResult(Err(e)) => {
@@ -35,7 +27,7 @@ impl App {
                 }
             }
             NetworkEvent::IssuesResult(Ok(issues)) => {
-                self.command_items = issues
+                let items = issues
                     .into_iter()
                     .map(|i| {
                         let status = if i.pull_request.is_some() {
@@ -46,17 +38,14 @@ impl App {
                         format!("{} #{}: {} ({})", status, i.number, i.title, i.state)
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = "Issues loaded. Select with arrows, Enter to view.".to_string();
             }
             NetworkEvent::IssuesResult(Err(e)) => {
                 self.status = format!("Issues fetch failed: {e}");
             }
             NetworkEvent::PrsResult(Ok(prs)) => {
-                self.command_items = prs
+                let items = prs
                     .into_iter()
                     .map(|pr| {
                         format!(
@@ -69,17 +58,14 @@ impl App {
                         )
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = "Pull requests loaded.".to_string();
             }
             NetworkEvent::PrsResult(Err(e)) => {
                 self.status = format!("PR fetch failed: {e}");
             }
             NetworkEvent::CommitsResult(Ok(commits)) => {
-                self.command_items = commits
+                let items = commits
                     .into_iter()
                     .map(|c| {
                         let short = c.sha.chars().take(7).collect::<String>();
@@ -87,17 +73,14 @@ impl App {
                         format!("[COMMIT] {} {} - {}", short, c.commit.author.name, msg)
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = "Recent commits loaded.".to_string();
             }
             NetworkEvent::CommitsResult(Err(e)) => {
                 self.status = format!("Commits fetch failed: {e}");
             }
             NetworkEvent::CompareResult(Ok(compare)) => {
-                self.command_items = compare
+                let items = compare
                     .files
                     .into_iter()
                     .map(|f| {
@@ -107,10 +90,7 @@ impl App {
                         )
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = format!(
                     "Compare: {} ahead, {} behind",
                     compare.ahead_by, compare.behind_by
@@ -121,30 +101,23 @@ impl App {
             }
             NetworkEvent::CheckRunsResult(Ok(runs)) => {
                 let count = runs.len();
-                self.command_items = runs
+                let items = runs
                     .into_iter()
                     .map(|r| {
                         let conclusion = r.conclusion.as_deref().unwrap_or("pending");
                         format!("[CI] {}: {}", r.name, conclusion)
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = format!("CI checks: {}", count);
             }
             NetworkEvent::CheckRunsResult(Err(e)) => {
                 self.status = format!("CI check fetch failed: {e}");
             }
             NetworkEvent::StarredResult(Ok(repos)) => {
-                self.repos = repos;
-                self.selected_repo = 0;
-                self.tree_all.clear();
-                self.tree_visible_limit = 0;
-                self.selected_node = 0;
-                self.current_repo = None;
-                self.status = format!("Loaded {} starred repositories.", self.repos.len());
+                self.search.apply_results(repos);
+                self.clear_repo_context();
+                self.status = format!("Loaded {} starred repositories.", self.search.repos.len());
             }
             NetworkEvent::StarredResult(Err(e)) => {
                 self.status = format!("Starred repos fetch failed: {e}");
@@ -185,12 +158,7 @@ impl App {
                 items.push("[View Reviews]".to_string());
                 items.push("[View Comments]".to_string());
                 items.push("[View Commits]".to_string());
-                self.command_items = items;
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_input.clear();
-                self.command_is_pr_action = true;
-                self.command_palette_visible = true;
+                self.command_palette.show(items, true);
                 self.status = format!("PR #{}: {}", detail.number, detail.title);
             }
             NetworkEvent::PrDetailResult(Err(e)) => {
@@ -198,7 +166,7 @@ impl App {
             }
             NetworkEvent::PrReviewsResult(Ok(reviews)) => {
                 self.pr_reviews = reviews;
-                self.command_items = self
+                let mut items = self
                     .pr_reviews
                     .iter()
                     .map(|r| {
@@ -211,15 +179,11 @@ impl App {
                             .collect::<String>();
                         format!("[REVIEW] {}: {} - {}", r.user.login, r.state, short_body)
                     })
-                    .collect();
-                if self.command_items.is_empty() {
-                    self.command_items.push("No reviews yet.".to_string());
+                    .collect::<Vec<_>>();
+                if items.is_empty() {
+                    items.push("No reviews yet.".to_string());
                 }
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_input.clear();
-                self.command_is_pr_action = true;
-                self.command_palette_visible = true;
+                self.command_palette.show(items, true);
                 self.status = format!("{} reviews loaded.", self.pr_reviews.len());
             }
             NetworkEvent::PrReviewsResult(Err(e)) => {
@@ -227,7 +191,7 @@ impl App {
             }
             NetworkEvent::PrCommentsResult(Ok(comments)) => {
                 self.pr_comments = comments;
-                self.command_items = self
+                let mut items = self
                     .pr_comments
                     .iter()
                     .map(|c| {
@@ -238,22 +202,18 @@ impl App {
                             .unwrap_or_default();
                         format!("[COMMENT]{}{}", c.user.login, path_info)
                     })
-                    .collect();
-                if self.command_items.is_empty() {
-                    self.command_items.push("No comments yet.".to_string());
+                    .collect::<Vec<_>>();
+                if items.is_empty() {
+                    items.push("No comments yet.".to_string());
                 }
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_input.clear();
-                self.command_is_pr_action = true;
-                self.command_palette_visible = true;
+                self.command_palette.show(items, true);
                 self.status = format!("{} comments loaded.", self.pr_comments.len());
             }
             NetworkEvent::PrCommentsResult(Err(e)) => {
                 self.status = format!("Comments fetch failed: {e}");
             }
             NetworkEvent::PrCommitsResult(Ok(commits)) => {
-                self.command_items = commits
+                let mut items = commits
                     .iter()
                     .map(|c| {
                         let short = c.sha.chars().take(7).collect::<String>();
@@ -268,15 +228,11 @@ impl App {
                             .collect::<String>();
                         format!("{} {} - {}", short, c.commit.author.name, msg)
                     })
-                    .collect();
-                if self.command_items.is_empty() {
-                    self.command_items.push("No commits.".to_string());
+                    .collect::<Vec<_>>();
+                if items.is_empty() {
+                    items.push("No commits.".to_string());
                 }
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_input.clear();
-                self.command_is_pr_action = true;
-                self.command_palette_visible = true;
+                self.command_palette.show(items, true);
                 self.status = format!("{} commits loaded.", commits.len());
             }
             NetworkEvent::PrCommitsResult(Err(e)) => {
@@ -301,17 +257,14 @@ impl App {
             }
             NetworkEvent::WorkflowRunsResult(runs) => {
                 let count = runs.len();
-                self.command_items = runs
+                let items = runs
                     .into_iter()
                     .map(|r| {
                         let conclusion = r.conclusion.as_deref().unwrap_or("pending");
                         format!("[WF] {}: {}", r.name, conclusion)
                     })
                     .collect();
-                self.command_filtered.clear();
-                self.command_cursor = 0;
-                self.command_palette_visible = true;
-                self.command_input.clear();
+                self.command_palette.show(items, false);
                 self.status = format!("Workflow runs: {}", count);
             }
         }

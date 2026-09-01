@@ -1,7 +1,8 @@
+use super::screens::Screen;
 use super::{App, Focus, theme};
 use crate::config::KeybindingsConfig;
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap};
@@ -74,7 +75,7 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
     let search_label = if app.focus == Focus::Search {
         app.input_buffer.clone()
     } else {
-        app.search_query.clone()
+        app.search.query.clone()
     };
     let search_block = Paragraph::new(search_label)
         .block(
@@ -92,7 +93,7 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
     if app.current_repo.is_some() {
         render_repo_view(frame, app, chunks[1]);
     } else {
-        render_repo_list(frame, app, chunks[1]);
+        app.search.render(frame, app, chunks[1]);
     }
 
     let status_title = match app.github.rate_limit_remaining() {
@@ -192,134 +193,10 @@ pub fn render(frame: &mut Frame<'_>, app: &mut App) {
         frame.render_widget(modal, area);
     }
 
-    if app.command_palette_visible {
+    if app.command_palette.visible {
         let area = centered_rect(frame.area(), 60, 60);
-        frame.render_widget(Clear, area);
-
-        let items = {
-            let list = if app.command_input.is_empty() {
-                &app.command_items
-            } else {
-                &app.command_filtered
-            };
-            if list.is_empty() {
-                vec![ListItem::new(Line::from(" No matching commands"))]
-            } else {
-                list.iter()
-                    .enumerate()
-                    .map(|(i, cmd)| {
-                        let style = if i == app.command_cursor {
-                            theme::selection_style(i)
-                        } else {
-                            Style::default()
-                        };
-                        ListItem::new(Line::from(Span::styled(format!(" {}", cmd), style)))
-                    })
-                    .collect()
-            }
-        };
-
-        let inner = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(5)])
-            .split(area);
-
-        let search_input = Paragraph::new(app.command_input.clone()).block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Command Palette (Ctrl+P, type to filter, Enter to execute)"),
-        );
-        frame.render_widget(search_input, inner[0]);
-
-        let list_widget = List::new(items).block(Block::default().borders(Borders::NONE));
-        frame.render_widget(list_widget, inner[1]);
+        app.command_palette.render(frame, area);
     }
-}
-
-fn render_repo_list(frame: &mut Frame<'_>, app: &App, area: Rect) {
-    if app.show_info {
-        let version = env!("CARGO_PKG_VERSION");
-        let info = vec![
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("        GitNapse")),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw(format!("        Version {version}"))),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("        https://github.com/xscriptor/gitnapse")),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("        Author: xscriptor")),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("")),
-            Line::from(Span::raw("        Press / to search repositories")),
-        ];
-        let block = Block::default().title("Info").borders(Borders::ALL);
-        let paragraph = Paragraph::new(info)
-            .block(block)
-            .alignment(Alignment::Left)
-            .wrap(Wrap { trim: false });
-        frame.render_widget(paragraph, area);
-        return;
-    }
-
-    if app.repos.is_empty() {
-        return;
-    }
-
-    let viewport_rows = usize::from(area.height.saturating_sub(2)).max(1);
-    let max_start = app.repos.len().saturating_sub(viewport_rows);
-    let start = app
-        .selected_repo
-        .saturating_sub(viewport_rows / 2)
-        .min(max_start);
-    let end = (start + viewport_rows).min(app.repos.len());
-
-    let items = app.repos[start..end]
-        .iter()
-        .enumerate()
-        .map(|(index, repo)| {
-            let absolute = start + index;
-            let marker = if absolute == app.selected_repo {
-                ">"
-            } else {
-                " "
-            };
-            let select = if app.multi_selected_repos.contains(&absolute) {
-                "[*]"
-            } else {
-                "[ ]"
-            };
-            let desc = repo.description.as_deref().unwrap_or("No description");
-            let lang = repo.language.as_deref().unwrap_or("unknown");
-            let line = format!(
-                "{marker} {select} {}/{} | ★{} | {} | {}",
-                repo.owner.login, repo.name, repo.stargazers_count, lang, desc
-            );
-            let style = if absolute == app.selected_repo {
-                theme::selection_style(absolute)
-            } else {
-                Style::default()
-            };
-            ListItem::new(Line::from(Span::styled(line, style)))
-        })
-        .collect::<Vec<_>>();
-
-    let block = Block::default()
-        .title(format!(
-            "Repositories (page {} | per_page {} | shown {}-{} / {} | [ prev ] next)",
-            app.search_page,
-            app.per_page,
-            if app.repos.is_empty() { 0 } else { start + 1 },
-            end,
-            app.repos.len()
-        ))
-        .borders(Borders::ALL)
-        .border_style(if app.focus == Focus::Repos {
-            theme::selection_style(2).fg(Color::White)
-        } else {
-            Style::default()
-        });
-    frame.render_widget(List::new(items).block(block), area);
 }
 
 fn render_repo_view(frame: &mut Frame<'_>, app: &mut App, area: Rect) {

@@ -1,5 +1,5 @@
 use crate::auth;
-use crate::oauth_session;
+use crate::auth::oauth_session;
 use anyhow::{Context, Result, anyhow};
 use reqwest::header::ACCEPT;
 use secrecy::{ExposeSecret, SecretString};

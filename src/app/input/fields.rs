@@ -26,8 +26,8 @@ impl App {
         if self.keybindings.matches_key("escape", &code) {
             self.focus = Focus::Repos;
         } else if self.keybindings.matches_key("enter", &code) {
-            self.search_query = self.input_buffer.trim().to_string();
-            self.search_page = 1;
+            self.search.query = self.input_buffer.trim().to_string();
+            self.search.page = 1;
             self.focus = Focus::Repos;
             self.search();
         } else if self.keybindings.matches_key("backspace", &code) {
