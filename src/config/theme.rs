@@ -96,36 +96,42 @@ fn default_theme_name() -> String {
     "X".to_string()
 }
 
+const DEFAULT_BG: ColorValue = ColorValue {
+    r: 0x05,
+    g: 0x05,
+    b: 0x05,
+};
+const DEFAULT_FG: ColorValue = ColorValue {
+    r: 0xf7,
+    g: 0xf1,
+    b: 0xff,
+};
+const DEFAULT_ACCENT: ColorValue = ColorValue {
+    r: 0xfc,
+    g: 0x61,
+    b: 0x8d,
+};
+const DEFAULT_ACCENT2: ColorValue = ColorValue {
+    r: 0x7b,
+    g: 0xd8,
+    b: 0x8f,
+};
+const DEFAULT_ACCENT3: ColorValue = ColorValue {
+    r: 0x5a,
+    g: 0xd4,
+    b: 0xe6,
+};
+
 /// The default theme is the "X" palette expressed in the simplified format.
 impl Default for ThemeConfig {
     fn default() -> Self {
         Self {
             theme_name: "X".to_string(),
-            background: Some(ColorValue {
-                r: 0x05,
-                g: 0x05,
-                b: 0x05,
-            }),
-            foreground: Some(ColorValue {
-                r: 0xf7,
-                g: 0xf1,
-                b: 0xff,
-            }),
-            accent: Some(ColorValue {
-                r: 0xfc,
-                g: 0x61,
-                b: 0x8d,
-            }),
-            accent2: Some(ColorValue {
-                r: 0x7b,
-                g: 0xd8,
-                b: 0x8f,
-            }),
-            accent3: Some(ColorValue {
-                r: 0x5a,
-                g: 0xd4,
-                b: 0xe6,
-            }),
+            background: Some(DEFAULT_BG),
+            foreground: Some(DEFAULT_FG),
+            accent: Some(DEFAULT_ACCENT),
+            accent2: Some(DEFAULT_ACCENT2),
+            accent3: Some(DEFAULT_ACCENT3),
             selection_fg: Some(ColorValue {
                 r: 0x00,
                 g: 0x00,
@@ -139,20 +145,16 @@ impl Default for ThemeConfig {
 impl ThemeConfig {
     /// Resolve the semantic colors, falling back to defaults for anything unset.
     pub fn effective_colors(&self) -> ThemeColors {
-        let d = Self::default();
-        let bg = self.background.unwrap_or(d.background.unwrap()).as_rgb();
-        let fg = self.foreground.unwrap_or(d.foreground.unwrap()).as_rgb();
-        let accent = self.accent.unwrap_or(d.accent.unwrap()).as_rgb();
+        let bg = self.background.unwrap_or(DEFAULT_BG).as_rgb();
+        let fg = self.foreground.unwrap_or(DEFAULT_FG).as_rgb();
+        let accent = self.accent.unwrap_or(DEFAULT_ACCENT).as_rgb();
         ThemeColors {
             background: bg,
             foreground: fg,
             accent,
-            accent2: self.accent2.unwrap_or(d.accent2.unwrap()).as_rgb(),
-            accent3: self.accent3.unwrap_or(d.accent3.unwrap()).as_rgb(),
-            selection_fg: self
-                .selection_fg
-                .map(|c| c.as_rgb())
-                .or_else(|| d.selection_fg.map(|c| c.as_rgb())),
+            accent2: self.accent2.unwrap_or(DEFAULT_ACCENT2).as_rgb(),
+            accent3: self.accent3.unwrap_or(DEFAULT_ACCENT3).as_rgb(),
+            selection_fg: self.selection_fg.map(|c| c.as_rgb()),
         }
     }
 

@@ -96,8 +96,10 @@
 </p>
 <p>
   Switch themes from the command palette. Your selection is persisted and restored on next
-  launch. Custom themes can be added as <code>.jsonc</code> files in the config directory's
-  <code>themes/</code> folder. See <a href="THEME_CONFIG.md">THEME_CONFIG.md</a> for the format.
+  launch. The 12 presets are embedded in the binary, so they work offline. Custom themes can
+  be added as <code>.jsonc</code> files in the config directory's <code>themes/</code> folder,
+  or installed from the remote registry (<code>github.com/gitnapse/themes</code>) with
+  <code>gitnapse theme install &lt;name&gt;</code>. See <a href="THEME_CONFIG.md">THEME_CONFIG.md</a> for the format.
 </p>
 
 <h2 id="configuration" align="center">Configuration</h2>
@@ -116,7 +118,7 @@
     <tr><td><code>account.json</code></td><td>Preferred clone directory, last branch per repo, last selected theme</td></tr>
     <tr><td><code>theme.jsonc</code></td><td>Custom color palette configuration (16 RGB colors)</td></tr>
     <tr><td><code>keybindings.jsonc</code></td><td>Custom keybinding overrides (optional, defaults used if absent)</td></tr>
-    <tr><td><code>themes/*.jsonc</code></td><td>Additional user-installed theme presets</td></tr>
+    <tr><td><code>themes/*.jsonc</code></td><td>User themes (custom or installed from the remote registry)</td></tr>
     <tr><td><code>token</code></td><td>Stored GitHub token (encrypted via keyring, with file fallback)</td></tr>
     <tr><td><code>oauth_session.json</code></td><td>OAuth session metadata including refresh tokens</td></tr>
   </tbody>
@@ -127,15 +129,19 @@
   The codebase is organized into modular directories:
 </p>
 <ul>
-  <li><code>src/app/</code> -- TUI application (state, input handling, rendering, commands, network event processing)</li>
+  <li><code>src/main.rs</code> -- thin binary entrypoint dispatching CLI actions</li>
+  <li><code>src/app/</code> -- TUI frontend (state, input handling, rendering, commands, network event processing); screens under <code>src/app/screens/</code></li>
+  <li><code>src/cli/</code> -- headless commands (git operations, GitHub API, themes registry, auth)</li>
   <li><code>src/github/</code> -- GitHub REST API client with typed error handling and retry logic</li>
+  <li><code>src/provider.rs</code> -- <code>GitProvider</code> trait abstraction for future providers</li>
   <li><code>src/config/</code> -- Configuration management (account, themes, keybindings)</li>
   <li><code>src/models/</code> -- Data models for all GitHub API responses</li>
-  <li><code>src/auth.rs</code>, <code>src/oauth.rs</code>, <code>src/oauth_session.rs</code> -- Authentication</li>
-  <li><code>src/secure_store.rs</code> -- Keyring and file-based secret storage</li>
+  <li><code>src/auth/</code> -- Authentication (token loading, OAuth device flow, session, secure storage)</li>
+  <li><code>src/registry.rs</code> -- Client for the remote themes registry</li>
   <li><code>src/cache.rs</code> -- Preview cache with TTL and ETag support</li>
   <li><code>src/syntax.rs</code> -- Syntax highlighting engine</li>
   <li><code>src/error.rs</code> -- Typed error enums via <code>thiserror</code></li>
+  <li><code>src/task_manager.rs</code>, <code>src/runtime.rs</code> -- background threads and shared tokio runtime</li>
 </ul>
 <p>
   Network operations run on background threads via <code>mpsc</code> channels, keeping the

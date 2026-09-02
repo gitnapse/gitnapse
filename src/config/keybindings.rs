@@ -118,7 +118,7 @@ fn str_to_keycode(s: &str) -> Option<KeyCode> {
         "PageUp" => KeyCode::PageUp,
         "PageDown" => KeyCode::PageDown,
         "Delete" => KeyCode::Delete,
-        single if single.len() == 1 => KeyCode::Char(single.chars().next().unwrap()),
+        single if single.len() == 1 => KeyCode::Char(single.chars().next().unwrap_or(' ')),
         _ => return None,
     })
 }

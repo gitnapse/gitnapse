@@ -24,18 +24,16 @@ fn parse_repo_spec(spec: &str) -> Result<(String, Option<String>)> {
             }
         }
         Ok((spec.to_string(), None))
-    } else {
-        if let Some((repo, branch)) = spec.split_once(':') {
-            if repo.is_empty() {
-                return Err(anyhow!(
-                    "invalid repository specification '{spec}'\n\
-                     Usage: gitnapse clone <owner/repo>[:branch] [--dir <path>]"
-                ));
-            }
-            Ok((repo.to_string(), Some(branch.to_string())))
-        } else {
-            Ok((spec.to_string(), None))
+    } else if let Some((repo, branch)) = spec.split_once(':') {
+        if repo.is_empty() {
+            return Err(anyhow!(
+                "invalid repository specification '{spec}'\n\
+                 Usage: gitnapse clone <owner/repo>[:branch] [--dir <path>]"
+            ));
         }
+        Ok((repo.to_string(), Some(branch.to_string())))
+    } else {
+        Ok((spec.to_string(), None))
     }
 }
 

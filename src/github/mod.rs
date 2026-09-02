@@ -131,12 +131,18 @@ impl GitHubClient {
 
     /// Public read‑only accessor for the last known `x-ratelimit-remaining` value.
     pub fn rate_limit_remaining(&self) -> Option<u32> {
-        *self.rate_limit_remaining.lock().unwrap()
+        *self
+            .rate_limit_remaining
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
     }
 
     /// Public read‑only accessor for the last known `x-ratelimit-reset` (Unix timestamp).
     pub fn rate_limit_reset(&self) -> Option<u64> {
-        *self.rate_limit_reset.lock().unwrap()
+        *self
+            .rate_limit_reset
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
     }
 
     /// Extract rate‑limit headers from an HTTP response and cache them on `self`.
@@ -184,9 +190,15 @@ impl GitHubClient {
 
     /// Return an error immediately if we already know the rate limit is exhausted.
     pub(crate) fn check_rate_limit(&self) -> Result<(), GitHubError> {
-        let remaining = self.rate_limit_remaining.lock().unwrap();
+        let remaining = self
+            .rate_limit_remaining
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         if let Some(0) = *remaining {
-            let reset = self.rate_limit_reset.lock().unwrap();
+            let reset = self
+                .rate_limit_reset
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             if let Some(reset_ts) = *reset {
                 let now = SystemTime::now()
                     .duration_since(UNIX_EPOCH)

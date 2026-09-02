@@ -4,6 +4,9 @@
 //! machine-readable API that lists available themes and where each one lives
 //! (under `colors/`). No authentication is needed — the repo is public and we
 //! fetch from raw.githubusercontent.com.
+//!
+//! The index is treated as untrusted input: theme names become file names on
+//! disk and `file` values become URLs, so both are validated before use.
 
 use anyhow::{Context, Result, anyhow};
 use reqwest::header::{ACCEPT, HeaderMap, HeaderValue, USER_AGENT};
@@ -13,6 +16,9 @@ pub const REGISTRY_OWNER: &str = "gitnapse";
 pub const REGISTRY_REPO: &str = "themes";
 pub const REGISTRY_BRANCH: &str = "main";
 
+const MAX_NAME_LEN: usize = 64;
+const MAX_FILE_LEN: usize = 256;
+
 fn raw_base() -> String {
     format!("https://raw.githubusercontent.com/{REGISTRY_OWNER}/{REGISTRY_REPO}/{REGISTRY_BRANCH}")
 }
@@ -20,6 +26,36 @@ fn raw_base() -> String {
 /// URL of the registry index (the themes "API").
 pub fn index_url() -> String {
     format!("{}/index.json", raw_base())
+}
+
+/// Validate a theme name before it becomes part of a local file name.
+/// Allows ASCII alphanumerics plus `-`, `_`, `.` and spaces; rejects anything
+/// that could traverse directories (`/`, `\`, `:`, `..` tricks, NUL).
+pub fn valid_theme_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= MAX_NAME_LEN
+        && !name.contains(['/', '\\', ':'])
+        && name != "."
+        && name != ".."
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | ' '))
+}
+
+/// Validate the `file` value of a theme entry: either an `https://` URL or a
+/// relative path inside the registry repo. Rejects plain `http://` (SSRF risk
+/// against localhost), absolute paths and `..` traversal components.
+pub fn valid_theme_file(file: &str) -> bool {
+    if file.is_empty() || file.len() > MAX_FILE_LEN || file.contains('\\') {
+        return false;
+    }
+    if let Some(rest) = file.strip_prefix("https://") {
+        return !rest.is_empty() && !rest.starts_with('/') && !rest.contains([' ', '\n', '\r']);
+    }
+    if file.contains("://") || file.starts_with('/') {
+        return false;
+    }
+    file.split('/').all(|seg| seg != ".." && !seg.is_empty())
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -48,12 +84,22 @@ pub struct ThemeEntry {
 impl ThemeEntry {
     /// Resolve the raw download URL for this theme's file.
     pub fn download_url(&self) -> String {
-        if self.file.starts_with("http://") || self.file.starts_with("https://") {
+        if self.file.starts_with("https://") {
             self.file.clone()
         } else {
             format!("{}/{}", raw_base(), self.file)
         }
     }
+}
+
+/// Validate the entries of a fetched index. Returns the list of invalid
+/// entries so the caller can reject a compromised registry early.
+fn invalid_entries(index: &ThemeIndex) -> Vec<&ThemeEntry> {
+    index
+        .themes
+        .iter()
+        .filter(|t| !valid_theme_name(&t.name) || !valid_theme_file(&t.file))
+        .collect()
 }
 
 fn http_client() -> Result<reqwest::Client> {
@@ -78,7 +124,17 @@ pub fn fetch_index() -> Result<ThemeIndex> {
             .text()
             .await
     })?;
-    serde_json::from_str(&body).with_context(|| format!("invalid registry index at {url}"))
+    let index: ThemeIndex =
+        serde_json::from_str(&body).with_context(|| format!("invalid registry index at {url}"))?;
+    let bad = invalid_entries(&index);
+    if !bad.is_empty() {
+        let names: Vec<&str> = bad.iter().map(|t| t.name.as_str()).collect();
+        return Err(anyhow!(
+            "registry index at {url} contains invalid theme entries: {}",
+            names.join(", ")
+        ));
+    }
+    Ok(index)
 }
 
 /// List themes available in the registry.
@@ -150,6 +206,9 @@ pub fn list_installed() -> Result<Vec<String>> {
 
 /// Remove an installed theme file. Returns whether it existed.
 pub fn uninstall_theme(name: &str) -> Result<bool> {
+    if !valid_theme_name(name) {
+        return Err(anyhow!("invalid theme name '{name}'"));
+    }
     let path = crate::config::config_dir()?
         .join("themes")
         .join(format!("{name}.jsonc"));
@@ -177,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn download_url_prefers_explicit_http() {
+    fn download_url_prefers_explicit_https() {
         let e = entry("x", "https://cdn.example.com/t.jsonc");
         assert_eq!(e.download_url(), "https://cdn.example.com/t.jsonc");
     }
@@ -200,5 +259,52 @@ mod tests {
         };
         assert!(find_theme(&index, "madrid").is_some());
         assert!(find_theme(&index, "nope").is_none());
+    }
+
+    #[test]
+    fn theme_names_must_be_safe_filenames() {
+        assert!(valid_theme_name("Madrid"));
+        assert!(valid_theme_name("X"));
+        assert!(valid_theme_name("My Theme 2"));
+        assert!(!valid_theme_name(""));
+        assert!(!valid_theme_name(".."));
+        assert!(!valid_theme_name("."));
+        assert!(!valid_theme_name("../evil"));
+        assert!(!valid_theme_name("a/b"));
+        assert!(!valid_theme_name("a\\b"));
+        assert!(!valid_theme_name("a:b"));
+        assert!(!valid_theme_name(&"a".repeat(65)));
+    }
+
+    #[test]
+    fn theme_files_must_be_safe_paths_or_https() {
+        assert!(valid_theme_file("colors/X.jsonc"));
+        assert!(valid_theme_file("https://cdn.example.com/t.jsonc"));
+        assert!(!valid_theme_file(""));
+        assert!(!valid_theme_file("../evil.jsonc"));
+        assert!(!valid_theme_file("colors/../../evil.jsonc"));
+        assert!(!valid_theme_file("/etc/passwd"));
+        assert!(!valid_theme_file("a\\b"));
+        assert!(!valid_theme_file("http://localhost:8787/t.jsonc"));
+        assert!(!valid_theme_file("https://"));
+        assert!(!valid_theme_file(&"a/".repeat(130)));
+    }
+
+    #[test]
+    fn invalid_entries_are_reported() {
+        let index = ThemeIndex {
+            version: 1,
+            base_url: String::new(),
+            themes: vec![
+                entry("ok", "colors/ok.jsonc"),
+                entry("../evil", "colors/x.jsonc"),
+                entry("ok2", "http://x/y.jsonc"),
+            ],
+        };
+        let bad: Vec<&str> = invalid_entries(&index)
+            .iter()
+            .map(|e| e.name.as_str())
+            .collect();
+        assert_eq!(bad, ["../evil", "ok2"]);
     }
 }

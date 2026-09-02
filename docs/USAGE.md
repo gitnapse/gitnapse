@@ -172,7 +172,10 @@
 </p>
 <p>
   Custom themes can be added by placing a <code>.jsonc</code> file in the config directory's
-  <code>themes/</code> folder. See <a href="THEME_CONFIG.md">THEME_CONFIG.md</a> for the
+  <code>themes/</code> folder, or installed from the remote registry
+  (<code>github.com/gitnapse/themes</code>) with
+  <code>gitnapse theme install &lt;name&gt;</code> (see <code>gitnapse theme list --remote</code>
+  for available names). See <a href="THEME_CONFIG.md">THEME_CONFIG.md</a> for the
   file format.
 </p>
 

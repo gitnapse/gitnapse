@@ -16,7 +16,7 @@ Thanks for your interest in contributing.
 The CI runs four mandatory checks. Run **all of them locally** before pushing or opening a PR:
 
 ```bash
-./ci-check.sh
+./scripts/ci.sh
 ```
 
 This executes:

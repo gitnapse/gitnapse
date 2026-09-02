@@ -1,3 +1,4 @@
+#[cfg(feature = "tui")]
 pub mod app;
 pub mod auth;
 pub mod cache;
@@ -9,6 +10,7 @@ pub mod models;
 pub mod provider;
 pub mod registry;
 pub mod runtime;
+#[cfg(feature = "tui")]
 pub mod syntax;
 pub mod task_manager;
 

@@ -1,8 +1,8 @@
 <h1 align="center">Security Audit Guide</h1>
 
-<h2 align="center">Automated Audit In CI</h2>
+<h2 align="center">Automated Audit Locally</h2>
 <p>
-  GitNapse runs a dedicated GitHub Actions workflow at <code>.github/workflows/security.yml</code>.
+  GitNapse runs all checks locally via <code>scripts/ci.sh</code>. No remote CI gates are required.
 </p>
 <ul>
   <li><code>cargo fmt --all -- --check</code></li>
@@ -27,5 +27,5 @@ cargo audit --ignore RUSTSEC-2023-0071
 <p>
   The advisory <code>RUSTSEC-2023-0071</code> is currently transitive through
   <code>octocrab -&gt; jsonwebtoken -&gt; rsa</code> and has no fixed upgrade available in the current dependency line.
-  The workflow keeps this ID explicitly ignored until upstream provides a fix.
+  <code>scripts/ci.sh</code> keeps this ID explicitly ignored until upstream provides a fix.
 </p>

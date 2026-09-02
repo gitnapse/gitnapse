@@ -7,6 +7,7 @@
   <li><a href="#authentication">Authentication</a></li>
   <li><a href="#git-operations">Git Operations (local git)</a></li>
   <li><a href="#api-operations">GitHub API Operations</a></li>
+  <li><a href="#theme-registry">Theme Registry</a></li>
   <li><a href="#auto-detect">Auto-detect Repository</a></li>
   <li><a href="#error-handling">Error Handling</a></li>
   <li><a href="#examples">Quick Examples</a></li>
@@ -14,14 +15,15 @@
 </ul>
 
 <h2 id="overview" align="center">Overview</h2>
-<p>
-  GitNapse provides a set of CLI commands that operate both via the <strong>GitHub REST API</strong>
-  (for queries, PR management, issues, CI checks, comparisons, releases, repo creation, search)
-  and via <strong>local git</strong>
-  (for clone, commit, push, pull, fetch, checkout, diff, stash, tag, reset, status, log, branch,
-  remote, config, merge).
-  Authentication is shared across all commands.
-</p>
+  <p>
+    GitNapse provides a set of CLI commands that operate both via the <strong>GitHub REST API</strong>
+    (for queries, PR management, issues, CI checks, comparisons, releases, repo creation, search)
+    and via <strong>local git</strong>
+    (for clone, commit, push, pull, fetch, checkout, diff, stash, tag, reset, status, log, branch,
+    remote, config, merge).
+    It also manages UI themes through the <strong>remote theme registry</strong>.
+    Authentication is shared across all GitHub API commands.
+  </p>
 
 <h2 id="authentication" align="center">Authentication</h2>
 <p>
@@ -328,6 +330,45 @@
   </tbody>
 </table>
 
+<h2 id="theme-registry" align="center">Theme Registry</h2>
+<p>
+  Theme management reads the remote registry at <code>github.com/gitnapse/themes</code>.
+  The registry is a public data repo (no authentication required): <code>index.json</code>
+  at its root lists available themes and where each file lives. Installed themes are
+  written to the config directory's <code>themes/</code> folder.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Purpose</th>
+      <th>Example</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>gitnapse theme list</code></td>
+      <td>List installed themes</td>
+      <td><code>gitnapse theme list</code></td>
+      <td>Add <code>--remote</code> to also query the registry index.</td>
+    </tr>
+    <tr>
+      <td><code>gitnapse theme install</code></td>
+      <td>Install a theme from the registry</td>
+      <td><code>gitnapse theme install Tokio</code></td>
+      <td>Requires the registry to be reachable. Theme names are validated before any file is written.</td>
+    </tr>
+    <tr>
+      <td><code>gitnapse theme uninstall</code></td>
+      <td>Remove an installed theme</td>
+      <td><code>gitnapse theme uninstall Tokio</code></td>
+      <td>Removes <code>&lt;name&gt;.jsonc</code> from the config themes folder.</td>
+    </tr>
+  </tbody>
+</table>
+
 <h2 id="auto-detect" align="center">Auto-detect Repository</h2>
 <p>
   When using API commands (<code>pr</code>, <code>issue</code>, <code>ci</code>,
@@ -461,6 +502,12 @@ gitnapse release list xscriptor/gitnapse
 gitnapse release create xscriptor/gitnapse v1.0 -n "v1.0" -b "changelog"
 gitnapse repo create new-project -d "My new project" -p
 gitnapse search "rust language:wasm"
+
+# Theme registry
+gitnapse theme list
+gitnapse theme list --remote
+gitnapse theme install Tokio
+gitnapse theme uninstall Tokio
 </code></pre>
 
 <h2 id="full-command-list" align="center">Full Command List</h2>
@@ -513,5 +560,9 @@ gitnapse search "rust language:wasm"
 │   └── create       Create a release
 ├── repo
 │   └── create       Create a repository
+├── theme
+│   ├── list         List installed themes (--remote to query the registry)
+│   ├── install      Install a theme from the registry
+│   └── uninstall    Remove an installed theme
 └── search           Search repositories on GitHub
 </code></pre>

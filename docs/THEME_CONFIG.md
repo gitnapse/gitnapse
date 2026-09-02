@@ -53,7 +53,20 @@ You only need to provide the fields you want — everything unset falls back to 
 
 ## Named theme files
 
-Built-in themes live as `themes/*.jsonc` (config dir, then the app's `themes/` directory). They use the same format:
+Theme resolution order at runtime:
+
+1. A user file at `<config-dir>/themes/<name>.jsonc` (custom or installed), which overrides everything.
+2. The 12 built-in presets (X, Madrid, Lahabana, Miami, Paris, Tokio, Oslo, Helsinki, Berlin, London, Praha, Bogota), embedded in the binary and available after `cargo install` without extra files.
+
+Remote themes are installed into `<config-dir>/themes/` from the registry (`github.com/gitnapse/themes`) with:
+
+```sh
+gitnapse theme list --remote
+gitnapse theme install <name>
+gitnapse theme uninstall <name>
+```
+
+Theme files use the same format as `theme.jsonc`:
 
 ```jsonc
 {

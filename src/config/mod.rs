@@ -1,8 +1,10 @@
 pub mod account;
+#[cfg(feature = "tui")]
 pub mod keybindings;
 pub mod theme;
 
 pub use account::AccountConfig;
+#[cfg(feature = "tui")]
 pub use keybindings::KeybindingsConfig;
 pub use theme::ThemeColors;
 pub use theme::ThemeConfig;

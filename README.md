@@ -9,7 +9,7 @@
 </div>
 
 <div align="center">
-<img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /> <img src="https://img.shields.io/badge/rust-1.84%2B-orange.svg" alt="Rust 1.84+" /> <img src="https://img.shields.io/github/v/release/xscriptor/gitnapse?include_prereleases&label=release" alt="GitHub Release" /> <img src="https://github.com/xscriptor/gitnapse/actions/workflows/ci.yml/badge.svg" alt="CI" /> <img src="https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey.svg" alt="Platform" />
+<img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /> <img src="https://img.shields.io/badge/rust-1.84%2B-orange.svg" alt="Rust 1.84+" /> <img src="https://img.shields.io/github/v/release/xscriptor/gitnapse?include_prereleases&label=release" alt="GitHub Release" /> <img src="https://img.shields.io/badge/ci-local-success.svg" alt="Local CI" /> <img src="https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20windows-lightgrey.svg" alt="Platform" />
 </div>
 
 <div id="content"></div>
@@ -57,17 +57,19 @@
 <p>
   GitNapse is a Rust-first terminal application for exploring GitHub repositories from the command line.
   It provides repository discovery, branch-aware tree navigation, file previews, syntax-aware highlighting,
-  clone workflows, and single-file download capabilities.
+  clone workflows, and single-file download capabilities — plus a headless CLI for git and GitHub API
+  operations, and a remote theme registry.
 </p>
 
 <h2 id="status" align="center">Current Status</h2>
 <ul>
-  <li>Rust TUI stack based on <code>ratatui</code> + <code>crossterm</code>.</li>
-  <li>GitHub API integration for search, branches, tree, file content, and auth-user validation.</li>
-  <li>Token authentication through <code>GITHUB_TOKEN</code> or secure local storage.</li>
-  <li>Repository tree exploration with lazy loading and branch switching.</li>
-  <li>Preview pane with focus support, keyboard/mouse scroll, and syntax-aware display.</li>
-  <li>In-app file download modal and CLI file download command.</li>
+  <li>Rust TUI stack based on <code>ratatui</code> + <code>crossterm</code>, behind the <code>tui</code> cargo feature (default). The same codebase is a headless SDK with <code>--no-default-features</code>.</li>
+  <li>GitHub API integration through a provider layer (<code>GitProvider</code> trait) for search, branches, tree, file content, PRs, issues, CI checks, comparisons and releases.</li>
+  <li>Headless CLI: local git operations (<code>clone</code>, <code>commit</code>, <code>push</code>, <code>stash</code>, <code>tag</code>, …) and GitHub API actions (<code>pr</code>, <code>issue</code>, <code>ci</code>, <code>search</code>, …).</li>
+  <li>Remote theme registry (<code>github.com/gitnapse/themes</code>) with <code>gitnapse theme list --remote | install | uninstall</code>; 12 presets embedded in the binary.</li>
+  <li>Token authentication through <code>GITHUB_TOKEN</code>, secure keyring storage, or OAuth device flow.</li>
+  <li>Local-only CI: <code>scripts/ci.sh</code> (fmt, clippy, tests, audit) is the single validation gate.</li>
+  <li>The API/communication layer for web interfaces and third-party apps lives in the <a href="https://github.com/gitnapse/api"><code>gitnapse/api</code></a> repository.</li>
 </ul>
 
 <h2 id="quick-start" align="center">Quick Start</h2>
@@ -106,8 +108,9 @@ wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/inst
   <li><a href="./docs/REMOTE_INSTALLATION.md"><code>REMOTE_INSTALLATION.md</code></a> - remote scripts, parameters, and examples</li>
   <li><a href="./docs/USAGE.md"><code>USAGE.md</code></a> - full command and in-app usage guide</li>
   <li><a href="./docs/GITNAPSE_CLI.md"><code>GITNAPSE_CLI.md</code></a> - CLI command reference for clone, commit, push, status, log, branch, and PR management</li>
+  <li><a href="./docs/PROVIDER_CONFIGURATION.md"><code>PROVIDER_CONFIGURATION.md</code></a> - provider setup and configuration</li>
   <li><a href="./docs/OAUTH_AUTHENTICATION.md"><code>OAUTH_AUTHENTICATION.md</code></a> - OAuth login flows with octocrab and secure setup</li>
-  <li><a href="./docs/THEME_CONFIG.md"><code>THEME_CONFIG.md</code></a> - theme file format and customization</li>
+  <li><a href="./docs/THEME_CONFIG.md"><code>THEME_CONFIG.md</code></a> - theme file format, presets and the remote registry</li>
   <li><a href="./docs/COLLABORATIVE_SECTION.md"><code>COLLABORATIVE_SECTION.md</code></a> - branch protection, PR workflow, and release publishing collaboration guide</li>
   <li><a href="./docs/RELEASE_WORKFLOW.md"><code>RELEASE_WORKFLOW.md</code></a> - release build/publish workflow and versioning commands</li>
   <li><a href="./docs/ARCHITECTURE.md"><code>ARCHITECTURE.md</code></a> - technical architecture details</li>

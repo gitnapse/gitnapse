@@ -50,13 +50,17 @@
   <li>OAuth device-flow login implemented with <code>octocrab</code> and secure token persistence.</li>
   <li>OAuth session lifecycle handling added (expiry metadata + optional refresh flow with client secret env variables).</li>
   <li>Full palette-based navigation coloring with contrast-safe foreground.</li>
+  <li>Headless CLI expanded: local git operations and GitHub API actions via <code>src/cli/</code> (git.rs, api.rs, helpers.rs).</li>
+  <li>Provider abstraction (<code>GitProvider</code> trait) with GitHub implementation, URL auto-detection and factory.</li>
+  <li>Modularized screens under <code>src/app/screens/</code> (search, tree, command palette) and <code>auth/</code> submodules.</li>
+  <li>Remote theme registry (<code>github.com/gitnapse/themes</code>) with <code>theme list/install/uninstall</code> CLI and validated inputs.</li>
+  <li>API communication layer extracted to the <code>gitnapse/api</code> repository (<code>gitnapse-protocol</code> + <code>gitnapse-server</code>) for web interfaces and future third-party integrations.</li>
 </ul>
 
 <h2 id="quality" align="center">Quality and Validation</h2>
 <ul>
-  <li><code>cargo check</code> passes.</li>
-  <li><code>cargo test</code> passes.</li>
-  <li>Language diagnostics report no active errors.</li>
+  <li><code>scripts/ci.sh</code> passes: <code>cargo fmt --check</code>, <code>cargo clippy --all-targets --all-features -- -D warnings</code>, full test suite, and <code>cargo audit</code>.</li>
+  <li>CI is run locally; no remote GitHub Actions quality gates.</li>
 </ul>
 
 <h2 id="opportunities" align="center">Known Iteration Opportunities</h2>
@@ -64,4 +68,5 @@
   <li>Richer language-aware syntax highlighting engine.</li>
   <li>Additional integration tests for GitHub client and clone/download workflows.</li>
   <li>Optional advanced filtering/sorting in repository and tree navigation views.</li>
+  <li>SDK/library boundary: feature-gate the TUI so <code>gitnapse/api</code> consumes only the core modules.</li>
 </ul>

@@ -1,5 +1,30 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Theme registry client**: New `src/registry.rs` fetches the remote themes index from `github.com/gitnapse/themes` and installs themes into the user config dir. The index is treated as untrusted input: theme names and `file` values are validated before they become local file names or URLs (no path traversal, no plain `http://`). (`src/registry.rs`)
+- **Theme CLI subcommands**: `gitnapse theme list [--remote]`, `gitnapse theme install <name>`, and `gitnapse theme uninstall <name>` wired through `src/cli/args.rs` and `src/main.rs`.
+- **API repo extraction**: HTTP/JSON communication for web interfaces and future third-party integrations moved out to the new `gitnapse/api` repository (`gitnapse-protocol` + `gitnapse-server` + `gitnapse-client` crates).
+- **Screen extraction**: TUI screens moved to `src/app/screens/` (`command_palette.rs`, `search.rs`, `tree.rs`) with `mod.rs` re-exports, slimming `src/app/mod.rs`, `render.rs` and `commands.rs`. (`src/app/screens/`)
+- **Local CI script**: `scripts/ci.sh` consolidates fmt, clippy, tests and audit as the single local gate; `ci-check.sh` was renamed into it.
+- **TUI feature gate**: `[features] default = ["tui"]`, `tui = ["dep:ratatui", "dep:crossterm"]`. The TUI frontend (`app/`, `syntax`, `config::keybindings`) and the interactive binary arms are compiled only with the feature, so `gitnapse` can be consumed as a headless SDK with `--no-default-features` (no ratatui/crossterm in the tree). (`Cargo.toml`, `src/lib.rs`, `src/config/mod.rs`, `src/main.rs`, `src/cli/args.rs`)
+- **Dependency updates**: `h2` 0.4.13 -> 0.4.19, `webbrowser` 1.2.1 -> 1.2.4 and `crossbeam-epoch` 0.9.18 -> 0.9.20 (cargo-audit findings closed). (`Cargo.lock`)
+
+### Changed
+
+- **Auth module layout**: `auth.rs`, `oauth.rs`, `oauth_session.rs` and `secure_store.rs` moved under `src/auth/`; re-exported from `src/lib.rs` to keep the public API stable.
+- **Remote themes are the source of truth**: 12 bundled presets (`themes/*.jsonc`) and user theme loading rewritten around the remote registry and an expanded `src/config/theme.rs`. `docs/THEME_CONFIG.md` rewritten accordingly.
+- **CI is local-only**: `.github/workflows/ci.yml` and `.github/workflows/security.yml` removed; `scripts/ci.sh` (fmt + clippy `-D warnings` + tests + `cargo audit`) is now the only validation gate before merging.
+- **Production unwraps removed**: lock handling is poison-safe (`unwrap_or_else(|e| e.into_inner())`), thread spawns log instead of panicking, theme defaults resolve from constants and a keybinding edge case no longer unwraps. Only the global tokio runtime keeps a single documented `expect`. (`src/github/mod.rs`, `src/task_manager.rs`, `src/config/theme.rs`, `src/config/keybindings.rs`)
+- **Clippy fix**: collapsed `else-if` in `parse_repo_spec` (was failing the `-D warnings` gate). (`src/cli/git.rs`)
+- **Docs aligned with the modular layout**: `docs/ARCHITECTURE.md` rewritten (module map, provider layer, theme registry, CLI surface, repo boundary core/api, local CI); stale references to a local `themes/` folder purged from `OVERVIEW.md`, `USAGE.md`, `THEME_CONFIG.md`; `GITNAPSE_CLI.md` documents the `theme` subcommands; `IMPLEMENTATION_LOG.md` and `docs/tests/SECURITY_AUDIT.md` point to the local gate.
+
+### Removed
+
+- GitHub Actions workflows `ci.yml` and `security.yml` (replaced by local `scripts/ci.sh`).
+
 ## v0.1.2
 
 ### Added

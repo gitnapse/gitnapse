@@ -1,7 +1,9 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
-use gitnapse::{app, auth, cli, oauth};
+#[cfg(feature = "tui")]
+use gitnapse::app;
+use gitnapse::{auth, cli, oauth};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -17,6 +19,7 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Run interactive terminal UI
+    #[cfg(feature = "tui")]
     Run(cli::RunArgs),
     /// Download one file from a GitHub repository (curl/wget-like)
     DownloadFile(cli::DownloadFileArgs),
@@ -111,12 +114,15 @@ fn main() -> Result<()> {
 }
 
 fn dispatch(cmd: Option<Command>) -> Result<()> {
+    #[cfg(feature = "tui")]
+    use Command::Run;
     use Command::{
         Auth, Branch, Checkout, Ci, Clone, Commit, Compare, Config, Diff, DownloadFile, Fetch,
-        Issue, Log, Merge, Pr, Pull, Push, Release, Remote, Repo, Reset, Run, Search, Stash,
-        Status, Tag, Theme,
+        Issue, Log, Merge, Pr, Pull, Push, Release, Remote, Repo, Reset, Search, Stash, Status,
+        Tag, Theme,
     };
     match cmd {
+        #[cfg(feature = "tui")]
         Some(Run(args)) => app::run_with_options(args.into()),
         Some(DownloadFile(args)) => {
             cli::download_file(&args.repo, &args.path, args.r#ref.as_deref(), &args.out)
@@ -146,7 +152,16 @@ fn dispatch(cmd: Option<Command>) -> Result<()> {
         Some(Search(args)) => cli::search(&args.query),
         Some(Theme { action }) => dispatch_theme(action),
         Some(Auth { action }) => dispatch_auth(action),
+        #[cfg(feature = "tui")]
         None => app::run(),
+        #[cfg(not(feature = "tui"))]
+        None => {
+            eprintln!(
+                "interactive mode requires the \"tui\" feature (enabled by default); \
+                 run with default features to use `gitnapse` interactively"
+            );
+            Ok(())
+        }
     }
 }
 

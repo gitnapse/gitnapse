@@ -1,8 +1,6 @@
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
-use crate::app;
-
 // ── Top-level Args ──────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Args)]
@@ -388,7 +386,8 @@ pub enum OauthAction {
 
 // ── From impls ──────────────────────────────────────────────────────────
 
-impl From<RunArgs> for app::RunOptions {
+#[cfg(feature = "tui")]
+impl From<RunArgs> for crate::app::RunOptions {
     fn from(value: RunArgs) -> Self {
         Self {
             initial_query: value.query,
