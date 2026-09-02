@@ -42,6 +42,56 @@ pub fn load_token() -> Result<Option<String>> {
     secure_store::load_secret(TOKEN_SECRET_KEY, &file).map_err(|e| anyhow!("{e}"))
 }
 
+/// Where the active token comes from, in resolution order.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenSource {
+    /// `GITHUB_TOKEN` environment variable (takes precedence).
+    Env,
+    /// Persisted OAuth device-flow session.
+    OAuth,
+    /// Secure-store (keyring with file fallback) token.
+    Stored,
+    /// No token configured.
+    None,
+}
+
+impl TokenSource {
+    /// Stable machine-readable label.
+    pub fn label(self) -> &'static str {
+        match self {
+            TokenSource::Env => "env",
+            TokenSource::OAuth => "oauth",
+            TokenSource::Stored => "stored",
+            TokenSource::None => "none",
+        }
+    }
+}
+
+/// Detect which source provides the active token, mirroring [`load_token`]
+/// precedence. Never returns the token itself.
+pub fn token_source() -> Result<TokenSource> {
+    if let Ok(env_token) = std::env::var(ENV_TOKEN)
+        && !env_token.trim().is_empty()
+    {
+        return Ok(TokenSource::Env);
+    }
+
+    if let Some(session_token) = oauth_session::resolve_access_token()?
+        && !session_token.trim().is_empty()
+    {
+        return Ok(TokenSource::OAuth);
+    }
+
+    let file = token_file()?;
+    let stored = secure_store::load_secret(TOKEN_SECRET_KEY, &file).map_err(|e| anyhow!("{e}"))?;
+    let has_stored = stored.as_deref().is_some_and(|t| !t.trim().is_empty());
+    Ok(if has_stored {
+        TokenSource::Stored
+    } else {
+        TokenSource::None
+    })
+}
+
 pub fn save_token(token: &str) -> Result<()> {
     let token = token.trim();
     if token.is_empty() {

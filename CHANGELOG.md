@@ -4,6 +4,18 @@
 
 ### Added
 
+- **Typed token-source API**: `TokenSource` enum + `auth::token_source()`
+  report where the active token comes from (env/OAuth/stored/none), mirroring
+  `load_token` precedence and never exposing the token. Consumed by the
+  GitNapse API server for its `/api/v1/auth/*` endpoints. (`src/auth/mod.rs`)
+- **Self-documented CLI**: doc comments added to every subcommand and option
+  missing one (run, clone/commit/push/pull/fetch/checkout/diff/log/reset/ci/
+  compare, pr, issue, remotes, config, merge, releases, auth, stash, tag,
+  theme), so `gitnapse <command> --help` now explains every flag and default.
+- **CLI options reference in docs**: new "Options Reference (per command)"
+  section in `docs/GITNAPSE_CLI.md` containing the exact `--help` output of
+  every command (generated from the binary).
+
 - **Theme registry client**: New `src/registry.rs` fetches the remote themes index from `github.com/gitnapse/themes` and installs themes into the user config dir. The index is treated as untrusted input: theme names and `file` values are validated before they become local file names or URLs (no path traversal, no plain `http://`). (`src/registry.rs`)
 - **Theme CLI subcommands**: `gitnapse theme list [--remote]`, `gitnapse theme install <name>`, and `gitnapse theme uninstall <name>` wired through `src/cli/args.rs` and `src/main.rs`.
 - **API repo extraction**: HTTP/JSON communication for web interfaces and future third-party integrations moved out to the new `gitnapse/api` repository (`gitnapse-protocol` + `gitnapse-server` + `gitnapse-client` crates).

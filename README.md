@@ -81,18 +81,18 @@ gitnapse auth oauth login --client-id YOUR_OAUTH_CLIENT_ID --scope read:user --s
 
 <h2 id="remote-install" align="center">Remote Install / Uninstall</h2>
 <p><strong>Linux / macOS (curl):</strong></p>
-<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action install
-curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action uninstall --cleanup
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action install
+curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action uninstall --cleanup
 </code></pre>
 
 <p><strong>Linux / macOS (wget):</strong></p>
-<pre><code class="language-bash">wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action install
-wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action uninstall --cleanup
+<pre><code class="language-bash">wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action install
+wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action uninstall --cleanup
 </code></pre>
 
 <p><strong>Windows 11 PowerShell:</strong></p>
-<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.ps1 | iex
-&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.ps1))) -Action uninstall -Cleanup
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.ps1 | iex
+&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.ps1))) -Action uninstall -Cleanup
 </code></pre>
 
 <h2 id="release-automation" align="center">Release Automation</h2>

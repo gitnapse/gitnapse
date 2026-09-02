@@ -11,6 +11,7 @@
   <li><a href="#auto-detect">Auto-detect Repository</a></li>
   <li><a href="#error-handling">Error Handling</a></li>
   <li><a href="#examples">Quick Examples</a></li>
+  <li><a href="#options-reference">Options Reference</a></li>
   <li><a href="#full-command-list">Full Command List</a></li>
 </ul>
 
@@ -509,6 +510,582 @@ gitnapse theme list --remote
 gitnapse theme install Tokio
 gitnapse theme uninstall Tokio
 </code></pre>
+
+<h2 id="options-reference" align="center">Options Reference (per command)</h2>
+<p>
+  The reference below is generated from the CLI itself: each block is the exact
+  output of <code>gitnapse &lt;command&gt; --help</code>, so the descriptions
+  always match the real behavior. Regenerate whenever options change.
+</p>
+
+<h3>gitnapse run</h3>
+<pre><code>
+Run interactive terminal UI
+
+Usage: gitnapse run [OPTIONS]
+
+Options:
+      --query <QUERY>                    Initial search query [default: ""]
+      --page <PAGE>                      Search results page to load [default: 1]
+      --per-page <PER_PAGE>              Results per page (max 100) [default: 30]
+      --cache-ttl-secs <CACHE_TTL_SECS>  Preview cache TTL in seconds [default: 900]
+  -h, --help                             Print help
+</code></pre>
+
+<h3>gitnapse download-file</h3>
+<pre><code>
+Download one file from a GitHub repository (curl/wget-like)
+
+Usage: gitnapse download-file [OPTIONS] --repo <REPO> --path <PATH> --out <OUT>
+
+Options:
+      --repo <REPO>  Repository in owner/name form
+      --path <PATH>  Path of the file inside the repository
+      --ref <REF>    Branch/tag/commit (default: HEAD)
+      --out <OUT>    Destination local file path
+  -h, --help         Print help
+</code></pre>
+
+<h3>gitnapse clone</h3>
+<pre><code>
+Clone a repository (via API + git)
+
+Usage: gitnapse clone [OPTIONS] <REPO>
+
+Arguments:
+  <REPO>  owner/repo[:branch] or a full git URL
+
+Options:
+      --dir <DIR>  Destination directory (default: repository name in the current dir)
+  -h, --help       Print help
+</code></pre>
+
+<h3>gitnapse commit</h3>
+<pre><code>
+Stage (with -a) and commit changes
+
+Usage: gitnapse commit [OPTIONS] -m <MESSAGE>
+
+Options:
+  -m <MESSAGE>  Commit message
+  -a            Stage all changes first (git add -A)
+  -h, --help    Print help
+</code></pre>
+
+<h3>gitnapse push</h3>
+<pre><code>
+Push commits to remote
+
+Usage: gitnapse push [OPTIONS] [REMOTE] [BRANCH]
+
+Arguments:
+  [REMOTE]  Remote name (default: origin)
+  [BRANCH]  Branch to push (default: current branch)
+
+Options:
+      --force-with-lease  Force push with --force-with-lease
+  -h, --help              Print help
+</code></pre>
+
+<h3>gitnapse pull</h3>
+<pre><code>
+Pull changes from remote (with --rebase)
+
+Usage: gitnapse pull [OPTIONS] [REMOTE] [BRANCH]
+
+Arguments:
+  [REMOTE]  Remote name (default: origin)
+  [BRANCH]  Branch to pull (default: current branch)
+
+Options:
+      --rebase  Rebase instead of merge
+  -h, --help    Print help
+</code></pre>
+
+<h3>gitnapse fetch</h3>
+<pre><code>
+Fetch from remote (with --prune)
+
+Usage: gitnapse fetch [OPTIONS]
+
+Options:
+      --prune  Remove stale remote-tracking branches
+  -h, --help   Print help
+</code></pre>
+
+<h3>gitnapse checkout</h3>
+<pre><code>
+Switch branches or restore files
+
+Usage: gitnapse checkout [OPTIONS] <BRANCH>
+
+Arguments:
+  <BRANCH>  Branch to switch to
+
+Options:
+  -b          Create the branch before switching
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse diff</h3>
+<pre><code>
+Show working tree diff
+
+Usage: gitnapse diff [OPTIONS]
+
+Options:
+      --staged       Show staged changes instead of unstaged
+      --path <PATH>  Restrict the diff to a single path
+  -h, --help         Print help
+</code></pre>
+
+<h3>gitnapse status</h3>
+<pre><code>
+Show working tree status
+
+Usage: gitnapse status
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse log</h3>
+<pre><code>
+Show commit log (default: 20 entries)
+
+Usage: gitnapse log [OPTIONS]
+
+Options:
+  -n <COUNT>  Number of commits to show [default: 20]
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse branch</h3>
+<pre><code>
+List branches
+
+Usage: gitnapse branch
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse reset</h3>
+<pre><code>
+Reset current HEAD
+
+Usage: gitnapse reset [OPTIONS] [TARGET]
+
+Arguments:
+  [TARGET]  Ref to reset to (default: HEAD)
+
+Options:
+      --hard  Discard working tree changes
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse merge</h3>
+<pre><code>
+Merge a branch into current
+
+Usage: gitnapse merge <BRANCH>
+
+Arguments:
+  <BRANCH>  Branch to merge into the current branch
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse search</h3>
+<pre><code>
+Search repositories on GitHub
+
+Usage: gitnapse search <QUERY>
+
+Arguments:
+  <QUERY>  Search query
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse theme</h3>
+<pre><code>
+List, install or remove themes from the registry
+
+Usage: gitnapse theme <COMMAND>
+
+Commands:
+  list       List installed themes (add --remote to query the registry)
+  install    Install a theme from the registry (github.com/gitnapse/themes)
+  uninstall  Remove an installed theme
+  help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse theme list</h3>
+<pre><code>
+error: unrecognized subcommand 'theme list'
+
+  tip: a similar subcommand exists: 'theme'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse theme install</h3>
+<pre><code>
+error: unrecognized subcommand 'theme install'
+
+  tip: a similar subcommand exists: 'theme'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse theme uninstall</h3>
+<pre><code>
+error: unrecognized subcommand 'theme uninstall'
+
+  tip: a similar subcommand exists: 'theme'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse stash push</h3>
+<pre><code>
+error: unrecognized subcommand 'stash push'
+
+  tip: some similar subcommands exist: 'status', 'stash'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse stash pop</h3>
+<pre><code>
+error: unrecognized subcommand 'stash pop'
+
+  tip: some similar subcommands exist: 'status', 'stash'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse stash list</h3>
+<pre><code>
+error: unrecognized subcommand 'stash list'
+
+  tip: a similar subcommand exists: 'stash'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse tag list</h3>
+<pre><code>
+error: unrecognized subcommand 'tag list'
+
+  tip: a similar subcommand exists: 'tag'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse tag create</h3>
+<pre><code>
+error: unrecognized subcommand 'tag create'
+
+  tip: a similar subcommand exists: 'tag'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse tag delete</h3>
+<pre><code>
+error: unrecognized subcommand 'tag delete'
+
+  tip: a similar subcommand exists: 'tag'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse pr list</h3>
+<pre><code>
+error: unrecognized subcommand 'pr list'
+
+  tip: a similar subcommand exists: 'pr'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse pr create</h3>
+<pre><code>
+error: unrecognized subcommand 'pr create'
+
+  tip: a similar subcommand exists: 'pr'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse pr merge</h3>
+<pre><code>
+error: unrecognized subcommand 'pr merge'
+
+  tip: some similar subcommands exist: 'pr', 'merge'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse issue list</h3>
+<pre><code>
+error: unrecognized subcommand 'issue list'
+
+  tip: a similar subcommand exists: 'issue'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse issue create</h3>
+<pre><code>
+error: unrecognized subcommand 'issue create'
+
+  tip: a similar subcommand exists: 'issue'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse issue close</h3>
+<pre><code>
+error: unrecognized subcommand 'issue close'
+
+  tip: a similar subcommand exists: 'issue'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse ci</h3>
+<pre><code>
+Show CI status for a repository
+
+Usage: gitnapse ci [OPTIONS] <REPO>
+
+Arguments:
+  <REPO>  Repository in owner/name form (auto-detected inside a clone)
+
+Options:
+  -b, --branch <BRANCH>  Branch to inspect (default: main)
+  -w, --workflows        Also list workflow runs
+  -h, --help             Print help
+</code></pre>
+
+<h3>gitnapse compare</h3>
+<pre><code>
+Compare two branches
+
+Usage: gitnapse compare <REPO> <BASE> <HEAD>
+
+Arguments:
+  <REPO>  Repository in owner/name form (auto-detected inside a clone)
+  <BASE>  Base branch
+  <HEAD>  Head branch
+
+Options:
+  -h, --help  Print help
+</code></pre>
+
+<h3>gitnapse remote list</h3>
+<pre><code>
+error: unrecognized subcommand 'remote list'
+
+  tip: a similar subcommand exists: 'remote'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse remote add</h3>
+<pre><code>
+error: unrecognized subcommand 'remote add'
+
+  tip: a similar subcommand exists: 'remote'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse remote remove</h3>
+<pre><code>
+error: unrecognized subcommand 'remote remove'
+
+  tip: a similar subcommand exists: 'remote'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse remote rename</h3>
+<pre><code>
+error: unrecognized subcommand 'remote rename'
+
+  tip: a similar subcommand exists: 'remote'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse config get</h3>
+<pre><code>
+error: unrecognized subcommand 'config get'
+
+  tip: some similar subcommands exist: 'clone', 'ci', 'config'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse config set</h3>
+<pre><code>
+error: unrecognized subcommand 'config set'
+
+  tip: some similar subcommands exist: 'clone', 'ci', 'config'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse config list</h3>
+<pre><code>
+error: unrecognized subcommand 'config list'
+
+  tip: some similar subcommands exist: 'ci', 'config'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse release list</h3>
+<pre><code>
+error: unrecognized subcommand 'release list'
+
+  tip: a similar subcommand exists: 'release'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse release create</h3>
+<pre><code>
+error: unrecognized subcommand 'release create'
+
+  tip: a similar subcommand exists: 'release'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse repo create</h3>
+<pre><code>
+error: unrecognized subcommand 'repo create'
+
+  tip: some similar subcommands exist: 'release', 'repo'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse auth set</h3>
+<pre><code>
+error: unrecognized subcommand 'auth set'
+
+  tip: a similar subcommand exists: 'auth'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse auth clear</h3>
+<pre><code>
+error: unrecognized subcommand 'auth clear'
+
+  tip: a similar subcommand exists: 'auth'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse auth status</h3>
+<pre><code>
+error: unrecognized subcommand 'auth status'
+
+  tip: a similar subcommand exists: 'auth'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse auth oauth login</h3>
+<pre><code>
+error: unrecognized subcommand 'auth oauth login'
+
+  tip: a similar subcommand exists: 'auth'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
+<h3>gitnapse auth oauth status</h3>
+<pre><code>
+error: unrecognized subcommand 'auth oauth status'
+
+  tip: a similar subcommand exists: 'auth'
+
+Usage: gitnapse [COMMAND]
+
+For more information, try '--help'.
+</code></pre>
+
 
 <h2 id="full-command-list" align="center">Full Command List</h2>
 

@@ -12,12 +12,12 @@
 
 <h2 id="overview" align="center">Overview</h2>
 <p>
-  GitNapse includes remote installation scripts under <code>scripts/</code> so the tool can be installed
+  GitNapse includes remote installation scripts at the repository root so the tool can be installed
   or uninstalled without cloning the repository first.
 </p>
 <ul>
-  <li><code>scripts/install.sh</code> - Linux/macOS installer/uninstaller with dependency checks and Rust bootstrap.</li>
-  <li><code>scripts/install.ps1</code> - Windows 11 PowerShell installer/uninstaller with Rust bootstrap.</li>
+  <li><code>install.sh</code> - Linux/macOS installer/uninstaller with dependency checks and Rust bootstrap.</li>
+  <li><code>install.ps1</code> - Windows 11 PowerShell installer/uninstaller with Rust bootstrap.</li>
 </ul>
 
 <h2 id="unix-script" align="center">Linux/macOS Remote Script (.sh)</h2>
@@ -75,19 +75,19 @@
 
 <h2 id="examples" align="center">Command Examples</h2>
 <p><strong>Linux/macOS install (curl):</strong></p>
-<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action install
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action install
 </code></pre>
 
 <p><strong>Linux/macOS uninstall with cleanup (wget):</strong></p>
-<pre><code class="language-bash">wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.sh | bash -s -- --action uninstall --cleanup
+<pre><code class="language-bash">wget -qO- https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.sh | bash -s -- --action uninstall --cleanup
 </code></pre>
 
 <p><strong>Windows 11 install (PowerShell):</strong></p>
-<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.ps1 | iex
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.ps1 | iex
 </code></pre>
 
 <p><strong>Windows 11 uninstall with cleanup (PowerShell):</strong></p>
-<pre><code class="language-powershell">&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/scripts/install.ps1))) -Action uninstall -Cleanup
+<pre><code class="language-powershell">&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/xscriptor/gitnapse/main/install.ps1))) -Action uninstall -Cleanup
 </code></pre>
 
 <h2 id="security-notes" align="center">Security Notes</h2>
