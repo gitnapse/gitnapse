@@ -5,74 +5,33 @@ use std::process::Command;
 
 use crate::auth;
 use crate::error::GitHubError;
+use crate::git::{parse_repo_spec, resolve_clone_target};
 
 use super::helpers;
-
-fn parse_repo_spec(spec: &str) -> Result<(String, Option<String>)> {
-    if spec.is_empty() {
-        return Err(anyhow!(
-            "repository specification is empty\n\
-             Usage: gitnapse clone <owner/repo>[:branch] [--dir <path>]"
-        ));
-    }
-    if spec.contains("://") || spec.contains('@') {
-        if let Some(pos) = spec.rfind(':') {
-            let url_part = &spec[..pos];
-            let branch_part = &spec[pos + 1..];
-            if !branch_part.is_empty() && !branch_part.contains('/') && !branch_part.contains('.') {
-                return Ok((url_part.to_string(), Some(branch_part.to_string())));
-            }
-        }
-        Ok((spec.to_string(), None))
-    } else {
-        if let Some((repo, branch)) = spec.split_once(':') {
-            if repo.is_empty() {
-                return Err(anyhow!(
-                    "invalid repository specification '{spec}'\n\
-                     Usage: gitnapse clone <owner/repo>[:branch] [--dir <path>]"
-                ));
-            }
-            Ok((repo.to_string(), Some(branch.to_string())))
-        } else {
-            Ok((spec.to_string(), None))
-        }
-    }
-}
 
 // ── Clone ───────────────────────────────────────────────────────────────
 
 pub fn clone_repo(repo_spec: &str, dir: Option<&str>) -> Result<()> {
     helpers::check_git()?;
-    let (repo, branch) = parse_repo_spec(repo_spec)?;
-
-    let clone_url = if repo.contains("://") || repo.contains('@') {
-        repo.clone()
-    } else {
-        let token = auth::load_token()?;
-        let client = crate::provider::create_provider(
-            crate::provider::ProviderKind::GitHub,
-            token.as_deref(),
-        )?;
-        let info = client.fetch_repo_by_name(&repo).map_err(|e| {
-            let msg = if let Some(gh_err) = e.downcast_ref::<GitHubError>() {
-                match gh_err {
-                    GitHubError::Api { status, body }
-                        if *status == 404 || body.contains("Not Found") =>
-                    {
-                        format!("repository '{repo}' not found on GitHub")
-                    }
-                    GitHubError::Unauthorized => {
-                        "authentication required — run 'gitnapse auth set' or 'gitnapse auth oauth login'".to_string()
-                    }
-                    _ => format!("{gh_err}"),
+    // Parsed separately only to keep the user-facing error message below
+    // identical to the pre-refactor behavior (it names the bare `owner/repo`).
+    let (repo, _) = parse_repo_spec(repo_spec)?;
+    let target = resolve_clone_target(repo_spec).map_err(|e| {
+        let msg = if let Some(gh_err) = e.downcast_ref::<GitHubError>() {
+            match gh_err {
+                GitHubError::Api { status, body } if *status == 404 || body.contains("Not Found") => {
+                    format!("repository '{repo}' not found on GitHub")
                 }
-            } else {
-                format!("{e}")
-            };
-            anyhow!("{msg}")
-        })?;
-        info.clone_url
-    };
+                GitHubError::Unauthorized => {
+                    "authentication required — run 'gitnapse auth set' or 'gitnapse auth oauth login'".to_string()
+                }
+                _ => format!("{gh_err}"),
+            }
+        } else {
+            format!("{e}")
+        };
+        anyhow!("{msg}")
+    })?;
 
     let dest = dir.map(PathBuf::from);
 
@@ -84,10 +43,10 @@ pub fn clone_repo(repo_spec: &str, dir: Option<&str>) -> Result<()> {
 
     let mut cmd = Command::new("git");
     cmd.arg("clone");
-    if let Some(ref b) = branch {
+    if let Some(ref b) = target.branch {
         cmd.args(["-b", b]);
     }
-    cmd.arg(&clone_url);
+    cmd.arg(&target.url);
     if let Some(ref p) = dest {
         cmd.arg(p);
     }
@@ -98,7 +57,8 @@ pub fn clone_repo(repo_spec: &str, dir: Option<&str>) -> Result<()> {
             .as_ref()
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| {
-                clone_url
+                target
+                    .url
                     .rsplit_once('/')
                     .map(|(_, name)| name.trim_end_matches(".git").to_string())
                     .unwrap_or_default()

@@ -11,12 +11,24 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 mod ci;
 mod compare;
 mod content;
+mod insights;
+mod issues;
+mod pr_details;
 mod provider_impl;
 mod prs;
 mod releases;
 mod repos;
+mod search;
+mod users;
 
 pub(crate) const GITHUB_API: &str = "https://api.github.com";
+
+// ── Query helpers ────────────────────────────────────────────────────
+
+/// Percent-encode a value for use in a URL query string (`+` for spaces).
+pub(crate) fn encode_query_value(value: &str) -> String {
+    url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
+}
 
 // ── Retry helpers ────────────────────────────────────────────────────
 
@@ -95,11 +107,9 @@ impl GitHubClient {
         {
             // @me followed by whitespace (or exact @me caught above)
             trimmed[3..].trim()
-        } else if let Some(rest) = trimmed.strip_prefix("me:") {
-            // me: prefix — rest may be empty (e.g. just "me:")
-            rest.trim()
         } else {
-            return None;
+            // me: prefix — rest may be empty (e.g. just "me:")
+            trimmed.strip_prefix("me:")?.trim()
         };
 
         let mut text_terms = Vec::new();

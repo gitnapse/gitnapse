@@ -41,6 +41,61 @@ impl GitProvider for GitHubClient {
         self.fetch_repo_by_name(full_name).map_err(Into::into)
     }
 
+    fn fetch_user_profile(&self, login: &str) -> Result<crate::models::UserProfile> {
+        self.fetch_user_profile(login).map_err(Into::into)
+    }
+
+    fn fetch_user_repos(
+        &self,
+        login: &str,
+        sort: &str,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::RepoSummary>> {
+        self.fetch_user_repos(login, sort, page, per_page)
+            .map_err(Into::into)
+    }
+
+    fn search_users(
+        &self,
+        query: &str,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::UserProfile>> {
+        self.search_users(query, page, per_page).map_err(Into::into)
+    }
+
+    fn fetch_user_events(
+        &self,
+        login: &str,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::UserEvent>> {
+        self.fetch_user_events(login, page, per_page)
+            .map_err(Into::into)
+    }
+
+    fn fetch_notifications(
+        &self,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::Notification>> {
+        self.fetch_notifications(page, per_page).map_err(Into::into)
+    }
+
+    fn mark_notification_read(&self, id: &str) -> Result<()> {
+        self.mark_notification_read(id).map_err(Into::into)
+    }
+
+    fn search_code(
+        &self,
+        query: &str,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::CodeSearchResult>> {
+        self.search_code(query, page, per_page).map_err(Into::into)
+    }
+
     fn fetch_file_content(&self, full_name: &str, path: &str) -> Result<Vec<u8>> {
         self.fetch_file_content(full_name, path)
     }
@@ -62,6 +117,34 @@ impl GitProvider for GitHubClient {
     ) -> Result<Vec<crate::models::Issue>> {
         self.fetch_issues(full_name, state, per_page)
             .map_err(Into::into)
+    }
+
+    fn fetch_issue_detail(&self, full_name: &str, number: u64) -> Result<crate::models::Issue> {
+        self.fetch_issue_detail(full_name, number)
+            .map_err(Into::into)
+    }
+
+    fn fetch_issue_comments(
+        &self,
+        full_name: &str,
+        number: u64,
+    ) -> Result<Vec<crate::models::IssueComment>> {
+        self.fetch_issue_comments(full_name, number)
+            .map_err(Into::into)
+    }
+
+    fn create_issue_comment(
+        &self,
+        full_name: &str,
+        number: u64,
+        body: &str,
+    ) -> Result<crate::models::IssueComment> {
+        self.create_issue_comment(full_name, number, body)
+            .map_err(Into::into)
+    }
+
+    fn reopen_issue(&self, full_name: &str, number: u64) -> Result<crate::models::Issue> {
+        self.reopen_issue(full_name, number).map_err(Into::into)
     }
 
     fn create_issue(
@@ -121,6 +204,19 @@ impl GitProvider for GitHubClient {
         number: u64,
     ) -> Result<Vec<crate::models::CommitInfo>> {
         self.fetch_pull_request_commits(full_name, number)
+            .map_err(Into::into)
+    }
+
+    fn fetch_pr_files(&self, full_name: &str, number: u64) -> Result<Vec<crate::models::DiffFile>> {
+        self.fetch_pr_files(full_name, number).map_err(Into::into)
+    }
+
+    fn fetch_pr_conversation(
+        &self,
+        full_name: &str,
+        number: u64,
+    ) -> Result<Vec<crate::models::IssueComment>> {
+        self.fetch_pr_conversation(full_name, number)
             .map_err(Into::into)
     }
 
@@ -229,6 +325,19 @@ impl GitProvider for GitHubClient {
         private: bool,
     ) -> Result<crate::models::RepoSummary> {
         self.create_repo(name, description, private)
+            .map_err(Into::into)
+    }
+
+    fn fetch_languages(&self, full_name: &str) -> Result<Vec<crate::models::LanguageStat>> {
+        self.fetch_languages(full_name).map_err(Into::into)
+    }
+
+    fn fetch_contributors(
+        &self,
+        full_name: &str,
+        per_page: u8,
+    ) -> Result<Vec<crate::models::Contributor>> {
+        self.fetch_contributors(full_name, per_page)
             .map_err(Into::into)
     }
 

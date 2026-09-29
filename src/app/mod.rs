@@ -519,8 +519,19 @@ mod tests {
             stargazers_count: 0,
             language: None,
             clone_url: "".into(),
-            owner: crate::models::RepoOwner { login: "o".into() },
+            owner: crate::models::RepoOwner {
+                login: "o".into(),
+                avatar_url: None,
+            },
             default_branch: "main".into(),
+            html_url: None,
+            forks_count: None,
+            open_issues_count: None,
+            watchers_count: None,
+            private: None,
+            topics: None,
+            updated_at: None,
+            pushed_at: None,
         });
         app.preview_lines = vec![Line::from("test")];
 
@@ -544,8 +555,19 @@ mod tests {
                 stargazers_count: 0,
                 language: None,
                 clone_url: "".into(),
-                owner: crate::models::RepoOwner { login: "o".into() },
+                owner: crate::models::RepoOwner {
+                    login: "o".into(),
+                    avatar_url: None,
+                },
                 default_branch: "main".into(),
+                html_url: None,
+                forks_count: None,
+                open_issues_count: None,
+                watchers_count: None,
+                private: None,
+                topics: None,
+                updated_at: None,
+                pushed_at: None,
             },
             RepoSummary {
                 name: "b".into(),
@@ -554,8 +576,19 @@ mod tests {
                 stargazers_count: 0,
                 language: None,
                 clone_url: "".into(),
-                owner: crate::models::RepoOwner { login: "o".into() },
+                owner: crate::models::RepoOwner {
+                    login: "o".into(),
+                    avatar_url: None,
+                },
                 default_branch: "main".into(),
+                html_url: None,
+                forks_count: None,
+                open_issues_count: None,
+                watchers_count: None,
+                private: None,
+                topics: None,
+                updated_at: None,
+                pushed_at: None,
             },
         ];
         assert_eq!(app.selected_repo, 0);

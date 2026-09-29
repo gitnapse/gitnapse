@@ -31,6 +31,29 @@ fn file_fallback_save_load_clear_roundtrip() {
 
 #[test]
 #[serial]
+fn has_secret_tracks_file_backend_presence() {
+    let dir = tempdir().expect("tempdir");
+    let file = dir.path().join("secret-presence");
+    let key = "test_secret_presence";
+
+    let prev = std::env::var("WSL_DISTRO_NAME").ok();
+    unsafe { std::env::set_var("WSL_DISTRO_NAME", "Ubuntu") };
+
+    assert!(!secure_store::has_secret(key, &file));
+    secure_store::save_secret(key, &file, "present").expect("save");
+    assert!(secure_store::has_secret(key, &file));
+    secure_store::clear_secret(key, &file).expect("clear");
+    assert!(!secure_store::has_secret(key, &file));
+
+    if let Some(value) = prev {
+        unsafe { std::env::set_var("WSL_DISTRO_NAME", value) };
+    } else {
+        unsafe { std::env::remove_var("WSL_DISTRO_NAME") };
+    }
+}
+
+#[test]
+#[serial]
 #[cfg(unix)]
 fn file_fallback_sets_secure_permissions_on_unix() {
     use std::os::unix::fs::PermissionsExt;

@@ -1,7 +1,11 @@
 use anyhow::Result;
+#[cfg(not(feature = "tui"))]
+use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 
-use gitnapse::{app, auth, cli, oauth};
+#[cfg(feature = "tui")]
+use gitnapse::app;
+use gitnapse::{auth, cli, oauth};
 
 #[derive(Debug, Parser)]
 #[command(
@@ -112,7 +116,7 @@ fn dispatch(cmd: Option<Command>) -> Result<()> {
         Status, Tag,
     };
     match cmd {
-        Some(Run(args)) => app::run_with_options(args.into()),
+        Some(Run(args)) => run_tui_with_options(args),
         Some(DownloadFile(args)) => {
             cli::download_file(&args.repo, &args.path, args.r#ref.as_deref(), &args.out)
         }
@@ -140,8 +144,39 @@ fn dispatch(cmd: Option<Command>) -> Result<()> {
         Some(Repo { action }) => dispatch_repo(action),
         Some(Search(args)) => cli::search(&args.query),
         Some(Auth { action }) => dispatch_auth(action),
-        None => app::run(),
+        None => run_tui(),
     }
+}
+
+/// Launches the interactive terminal UI without options.
+#[cfg(feature = "tui")]
+fn run_tui() -> Result<()> {
+    app::run()
+}
+
+/// Reports that this binary was compiled without the `tui` feature.
+#[cfg(not(feature = "tui"))]
+fn run_tui() -> Result<()> {
+    Err(tui_unavailable())
+}
+
+/// Launches the interactive terminal UI with the given options.
+#[cfg(feature = "tui")]
+fn run_tui_with_options(args: cli::RunArgs) -> Result<()> {
+    app::run_with_options(args.into())
+}
+
+/// Reports that this binary was compiled without the `tui` feature.
+#[cfg(not(feature = "tui"))]
+fn run_tui_with_options(_args: cli::RunArgs) -> Result<()> {
+    Err(tui_unavailable())
+}
+
+#[cfg(not(feature = "tui"))]
+fn tui_unavailable() -> anyhow::Error {
+    anyhow!(
+        "built without TUI support — rebuild with the 'tui' feature enabled or use a non-TUI subcommand"
+    )
 }
 
 fn dispatch_stash(action: cli::StashAction) -> Result<()> {

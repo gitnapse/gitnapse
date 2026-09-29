@@ -39,6 +39,21 @@ pub fn run_git_with_cwd(args: &[&str], cwd: &std::path::Path) -> Result<std::pro
         .with_context(|| format!("failed to execute: git {} in {:?}", args.join(" "), cwd))
 }
 
+/// Runs a git command in `cwd` with `LC_ALL=C`, so machine-parsed output
+/// (status codes, upstream tracking text) is stable regardless of user locale.
+pub fn run_git_with_cwd_locale(
+    args: &[&str],
+    cwd: &std::path::Path,
+) -> Result<std::process::Output> {
+    check_git()?;
+    Command::new("git")
+        .args(args)
+        .current_dir(cwd)
+        .env("LC_ALL", "C")
+        .output()
+        .with_context(|| format!("failed to execute: git {} in {:?}", args.join(" "), cwd))
+}
+
 pub fn stderr_msg(output: &std::process::Output) -> String {
     String::from_utf8_lossy(&output.stderr).trim().to_string()
 }
@@ -62,16 +77,10 @@ pub fn not_a_repo_or_stderr(output: &std::process::Output, fallback_prefix: &str
 
 // ── Repo detection ──────────────────────────────────────────────────────
 
-pub fn detect_repo_from_remote() -> Option<String> {
-    let output = Command::new("git")
-        .args(["remote", "get-url", "origin"])
-        .output()
-        .ok()?;
-    if !output.status.success() {
-        return None;
-    }
-    let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    let url = url.strip_suffix(".git").unwrap_or(&url);
+/// Extracts `owner/repo` from a git remote URL (HTTPS, HTTP or scp-like SSH).
+pub fn parse_remote_full_name(url: &str) -> Option<String> {
+    let url = url.trim();
+    let url = url.strip_suffix(".git").unwrap_or(url);
 
     let after_scheme = url
         .strip_prefix("https://")
@@ -81,10 +90,9 @@ pub fn detect_repo_from_remote() -> Option<String> {
 
     let path = if let Some(pos) = after_scheme.find(':') {
         &after_scheme[pos + 1..]
-    } else if let Some(pos) = after_scheme.find('/') {
-        &after_scheme[pos + 1..]
     } else {
-        return None;
+        let pos = after_scheme.find('/')?;
+        &after_scheme[pos + 1..]
     };
 
     let parts: Vec<&str> = path.split('/').collect();
@@ -93,6 +101,18 @@ pub fn detect_repo_from_remote() -> Option<String> {
     } else {
         None
     }
+}
+
+pub fn detect_repo_from_remote() -> Option<String> {
+    let output = Command::new("git")
+        .args(["remote", "get-url", "origin"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let url = String::from_utf8_lossy(&output.stdout);
+    parse_remote_full_name(&url)
 }
 
 pub fn resolve_full_name(repo: &str) -> Result<String> {
@@ -238,6 +258,19 @@ mod tests {
     #[test]
     fn test_resolve_full_name_with_slash() {
         assert_eq!(resolve_full_name("owner/repo").unwrap(), "owner/repo");
+    }
+
+    #[test]
+    fn test_parse_remote_full_name_https_and_ssh() {
+        assert_eq!(
+            parse_remote_full_name("https://github.com/owner/repo.git"),
+            Some("owner/repo".to_string())
+        );
+        assert_eq!(
+            parse_remote_full_name("git@github.com:owner/repo.git"),
+            Some("owner/repo".to_string())
+        );
+        assert_eq!(parse_remote_full_name("not-a-url"), None);
     }
 
     #[test]
