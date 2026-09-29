@@ -60,6 +60,60 @@ pub fn clear_token() -> Result<()> {
     Ok(())
 }
 
+/// Origin of the currently active GitHub token.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenSource {
+    /// Token provided through the `GITHUB_TOKEN` environment variable.
+    Env,
+    /// Token resolved from the persisted OAuth session.
+    OAuth,
+    /// Token persisted in the secure store.
+    Stored,
+    /// No token is available.
+    None,
+}
+
+impl TokenSource {
+    /// Human-readable label for this token source.
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::Env => "GITHUB_TOKEN env",
+            Self::OAuth => "OAuth session",
+            Self::Stored => "stored token",
+            Self::None => "none",
+        }
+    }
+
+    /// Whether this source provides a usable token.
+    pub fn has_token(&self) -> bool {
+        !matches!(self, Self::None)
+    }
+}
+
+/// Detects where [`load_token`] would resolve a token from, without ever
+/// returning or logging the secret.
+///
+/// Precedence mirrors [`load_token`] exactly: non-empty `GITHUB_TOKEN` env,
+/// then the stored OAuth session, then the secure store.
+pub fn token_source() -> Result<TokenSource> {
+    if let Ok(env_token) = std::env::var(ENV_TOKEN)
+        && !env_token.trim().is_empty()
+    {
+        return Ok(TokenSource::Env);
+    }
+
+    if oauth_session::load_session()?.is_some() {
+        return Ok(TokenSource::OAuth);
+    }
+
+    let file = token_file()?;
+    if secure_store::has_secret(TOKEN_SECRET_KEY, &file) {
+        return Ok(TokenSource::Stored);
+    }
+
+    Ok(TokenSource::None)
+}
+
 pub fn set_token_cli(token_arg: Option<String>) -> Result<()> {
     let token = match token_arg {
         Some(t) => t,
@@ -130,4 +184,35 @@ pub fn status_cli() -> Result<()> {
         secure_store::preferred_backend_name()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ENV_TOKEN, TokenSource, token_source};
+
+    #[test]
+    fn token_source_labels_are_stable() {
+        assert_eq!(TokenSource::Env.label(), "GITHUB_TOKEN env");
+        assert_eq!(TokenSource::OAuth.label(), "OAuth session");
+        assert_eq!(TokenSource::Stored.label(), "stored token");
+        assert_eq!(TokenSource::None.label(), "none");
+    }
+
+    #[test]
+    fn token_source_has_token_flags() {
+        assert!(TokenSource::Env.has_token());
+        assert!(TokenSource::OAuth.has_token());
+        assert!(TokenSource::Stored.has_token());
+        assert!(!TokenSource::None.has_token());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn token_source_prefers_environment_token() {
+        temp_env::with_var(ENV_TOKEN, Some("token-source-env-test"), || {
+            let source = token_source().expect("token source");
+            assert_eq!(source, TokenSource::Env);
+            assert!(source.has_token());
+        });
+    }
 }

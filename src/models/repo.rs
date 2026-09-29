@@ -10,11 +10,29 @@ pub struct RepoSummary {
     pub clone_url: String,
     pub owner: RepoOwner,
     pub default_branch: String,
+    #[serde(default)]
+    pub html_url: Option<String>,
+    #[serde(default)]
+    pub forks_count: Option<u64>,
+    #[serde(default)]
+    pub open_issues_count: Option<u64>,
+    #[serde(default)]
+    pub watchers_count: Option<u64>,
+    #[serde(default)]
+    pub private: Option<bool>,
+    #[serde(default)]
+    pub topics: Option<Vec<String>>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub pushed_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RepoOwner {
     pub login: String,
+    #[serde(default)]
+    pub avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

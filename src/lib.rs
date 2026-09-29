@@ -1,9 +1,11 @@
+#[cfg(feature = "tui")]
 pub mod app;
 pub mod auth;
 pub mod cache;
 pub mod cli;
 pub mod config;
 pub mod error;
+pub mod git;
 pub mod github;
 pub mod models;
 pub mod oauth;
@@ -11,5 +13,6 @@ pub mod oauth_session;
 pub mod provider;
 pub mod runtime;
 pub mod secure_store;
+#[cfg(feature = "tui")]
 pub mod syntax;
 pub mod task_manager;

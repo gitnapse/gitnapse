@@ -1,6 +1,7 @@
 use clap::{Args, Subcommand};
 use std::path::PathBuf;
 
+#[cfg(feature = "tui")]
 use crate::app;
 
 // ── Top-level Args ──────────────────────────────────────────────────────
@@ -358,6 +359,7 @@ pub enum OauthAction {
 
 // ── From impls ──────────────────────────────────────────────────────────
 
+#[cfg(feature = "tui")]
 impl From<RunArgs> for app::RunOptions {
     fn from(value: RunArgs) -> Self {
         Self {

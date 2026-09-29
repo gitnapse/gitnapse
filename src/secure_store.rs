@@ -197,6 +197,20 @@ pub fn load_secret(secret_key: &str, fallback_file: &Path) -> Result<Option<Stri
     file_read(fallback_file)
 }
 
+/// Returns `true` when a secret is present in the operating system's keyring
+/// or in the local fallback file.
+///
+/// This is a presence check: the secret value is never returned to the caller
+/// and never logged.
+pub fn has_secret(secret_key: &str, fallback_file: &Path) -> bool {
+    if let Some(Ok(Some(value))) = keyring_get(secret_key)
+        && !value.trim().is_empty()
+    {
+        return true;
+    }
+    matches!(file_read(fallback_file), Ok(Some(_)))
+}
+
 /// Removes a secret from both the operating system's keyring and the local
 /// fallback file.
 ///

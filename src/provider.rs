@@ -1,6 +1,8 @@
 use crate::models::{
-    CheckRun, CommitInfo, CompareResponse, Issue, MergeResponse, PullRequest, PullRequestDetail,
-    PullRequestReview, Release, RepoNode, RepoSummary, ReviewComment, WorkflowRun,
+    CheckRun, CodeSearchResult, CommitInfo, CompareResponse, Contributor, DiffFile, Issue,
+    IssueComment, LanguageStat, MergeResponse, Notification, PullRequest, PullRequestDetail,
+    PullRequestReview, Release, RepoNode, RepoSummary, ReviewComment, UserEvent, UserProfile,
+    WorkflowRun,
 };
 use anyhow::Result;
 use std::sync::Arc;
@@ -58,6 +60,20 @@ pub trait GitProvider: Send + Sync {
     fn fetch_starred_repos(&self, page: u32, per_page: u8) -> Result<Vec<RepoSummary>>;
     fn fetch_repo_by_name(&self, full_name: &str) -> Result<RepoSummary>;
 
+    fn fetch_user_profile(&self, login: &str) -> Result<UserProfile>;
+    fn fetch_user_repos(
+        &self,
+        login: &str,
+        sort: &str,
+        page: u32,
+        per_page: u8,
+    ) -> Result<Vec<RepoSummary>>;
+    fn search_users(&self, query: &str, page: u32, per_page: u8) -> Result<Vec<UserProfile>>;
+    fn fetch_user_events(&self, login: &str, page: u32, per_page: u8) -> Result<Vec<UserEvent>>;
+    fn fetch_notifications(&self, page: u32, per_page: u8) -> Result<Vec<Notification>>;
+    fn mark_notification_read(&self, id: &str) -> Result<()>;
+    fn search_code(&self, query: &str, page: u32, per_page: u8) -> Result<Vec<CodeSearchResult>>;
+
     fn fetch_file_content(&self, full_name: &str, path: &str) -> Result<Vec<u8>>;
     fn fetch_file_content_by_ref(
         &self,
@@ -67,6 +83,15 @@ pub trait GitProvider: Send + Sync {
     ) -> Result<Vec<u8>>;
 
     fn fetch_issues(&self, full_name: &str, state: &str, per_page: u8) -> Result<Vec<Issue>>;
+    fn fetch_issue_detail(&self, full_name: &str, number: u64) -> Result<Issue>;
+    fn fetch_issue_comments(&self, full_name: &str, number: u64) -> Result<Vec<IssueComment>>;
+    fn create_issue_comment(
+        &self,
+        full_name: &str,
+        number: u64,
+        body: &str,
+    ) -> Result<IssueComment>;
+    fn reopen_issue(&self, full_name: &str, number: u64) -> Result<Issue>;
     fn create_issue(&self, full_name: &str, title: &str, body: Option<&str>) -> Result<Issue>;
     fn close_issue(&self, full_name: &str, number: u64) -> Result<Issue>;
 
@@ -88,6 +113,8 @@ pub trait GitProvider: Send + Sync {
         number: u64,
     ) -> Result<Vec<ReviewComment>>;
     fn fetch_pull_request_commits(&self, full_name: &str, number: u64) -> Result<Vec<CommitInfo>>;
+    fn fetch_pr_files(&self, full_name: &str, number: u64) -> Result<Vec<DiffFile>>;
+    fn fetch_pr_conversation(&self, full_name: &str, number: u64) -> Result<Vec<IssueComment>>;
     fn merge_pull_request(
         &self,
         full_name: &str,
@@ -145,6 +172,9 @@ pub trait GitProvider: Send + Sync {
         description: Option<&str>,
         private: bool,
     ) -> Result<RepoSummary>;
+
+    fn fetch_languages(&self, full_name: &str) -> Result<Vec<LanguageStat>>;
+    fn fetch_contributors(&self, full_name: &str, per_page: u8) -> Result<Vec<Contributor>>;
 
     fn rate_limit_remaining(&self) -> Option<u32>;
     fn rate_limit_reset(&self) -> Option<u64>;

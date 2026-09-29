@@ -1,10 +1,16 @@
 use serde::Deserialize;
 
+use super::IssueUser;
+
 /// A commit in a repository
 #[derive(Debug, Clone, Deserialize)]
 pub struct CommitInfo {
     pub sha: String,
     pub commit: CommitDetails,
+    /// GitHub user associated with the commit, when GitHub can match the git
+    /// author to an account (the raw git author stays in `commit.author`).
+    #[serde(default)]
+    pub author: Option<IssueUser>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

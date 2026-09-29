@@ -4,11 +4,21 @@
 
 ### Added
 
+- **Headless SDK feature split**: `default = ["tui"]` with `tui = ["dep:ratatui", "dep:crossterm", "dep:nucleo-matcher"]`; the TUI-only modules `app`, `syntax` and `config::keybindings` (including the `KeybindingsConfig` re-export) are now feature-gated, so `--no-default-features` builds the headless SDK used by `api` and `desktop`. `gitnapse` without `tui` prints a clear "built without TUI support" error when the UI is requested, while every non-TUI CLI command keeps working. (`Cargo.toml`, `src/lib.rs`, `src/config/mod.rs`, `src/cli/args.rs`, `src/main.rs`)
+
+- **`auth::TokenSource`**: `auth::token_source()` reports where the active GitHub token comes from (`Env`, `OAuth`, `Stored`, `None`) with `label()`/`has_token()`, mirroring `load_token` precedence without ever returning or logging the secret. Added `secure_store::has_secret()` for cheap presence checks (keyring entry or fallback file). (`src/auth.rs`, `src/secure_store.rs`)
+
+- **Step-wise OAuth device flow**: `oauth::begin_device_flow()` returns `DeviceFlow` and `oauth::complete_device_flow()` returns `DevicePoll` (`Pending`, `SlowDown`, `Done(login)`, `Denied`, `Expired`); nothing is printed and no terminal is required. On success the token is persisted through `auth::save_token` and `oauth_session::save_session`. The interactive `auth oauth login` CLI now runs on top of these functions with unchanged stdout behavior. (`src/oauth.rs`)
+
+- **Typed local git module**: new `gitnapse::git` with `GitRepoInfo`, `GitStatus`, `FileChange`, `GitLogEntry`, `GitBranch`, `GitTag`, `GitRemote` and `GitStashEntry` DTOs plus a full operation surface (status, log, diff modes, stage/unstage/discard, commit, push/pull/fetch, branches, checkout, merge, reset, stash, tags, remotes, repo info). Every function takes an explicit `cwd`, returns `anyhow::Result` and never prints; parsing uses `status --porcelain=v2 --branch -z`, NUL-separated `log`/`stash` formats and `for-each-ref` for branches. Unit tests cover real repositories via `tempfile`. (`src/git/`, `src/cli/helpers.rs`)
+
 - **GitProvider trait**: New `GitProvider` trait in `src/provider.rs` abstracts all GitHub API methods (~28 methods), enabling future support for Azure DevOps, GitLab, and other providers. (`src/provider.rs`, `src/github/provider_impl.rs`)
 
 - **Provider auto-detection**: `detect_provider(url)` function parses git remote URLs to identify GitHub, Azure DevOps, GitLab, Bitbucket, and other providers. (`src/provider.rs`)
 
 - **Provider factory**: `create_provider(kind, token)` returns `Arc<dyn GitProvider>`, making provider selection a single call site. (`src/provider.rs`)
+
+- **Provider extension for the desktop dashboard**: `GitProvider` gained 15 methods — issues (`fetch_issue_detail`, `fetch_issue_comments`, `create_issue_comment`, `reopen_issue`), users/search (`fetch_user_profile`, `fetch_user_repos`, `search_users`, `fetch_user_events`, `fetch_notifications`, `mark_notification_read`, `search_code`), PR view (`fetch_pr_files`, `fetch_pr_conversation`) and repo insights (`fetch_languages`, `fetch_contributors`). New DTOs live in `src/models/dashboard.rs` (`UserProfile`, `IssueComment`, `CodeSearchResult`, `UserEvent`, `Notification`, `LanguageStat`, `Contributor`); `RepoOwner`/`RepoSummary`/`IssueUser`/`CommitInfo` gained additive optional fields (`avatar_url`, repo counts/URLs/topics, commit author). User events are mapped to a compact display DTO (unknown payloads become `kind: "other"`, `title: null`) and languages are returned sorted by bytes descending. Mocked-HTTP tests cover every new endpoint. (`src/provider.rs`, `src/github/provider_impl.rs`, `src/github/{issues,users,pr_details,insights,search}.rs`, `src/models/`)
 
 - **TaskManager**: New `TaskManager` in `src/task_manager.rs` tracks all background `JoinHandle`s instead of discarding them. Threads are named `"gitnapse-worker"` for debugging. (`src/task_manager.rs`)
 
